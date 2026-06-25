@@ -470,6 +470,9 @@
   }
 
   // DELETE
+  function closeConfirm() {
+    document.getElementById('confirm-overlay').classList.remove('open');
+  }
   function confirmSingleDelete(id) {
     const card = cards.find(c => c.id === id);
     if (!card) return;
@@ -486,12 +489,12 @@
     document.getElementById('confirm-overlay').classList.add('open');
   }
   async function executeDelete() {
-    const idsToDelete = [...pendingDeleteIds];
+    const idsToDelete = [...pendingDeleteIds]; // snapshot first
+    pendingDeleteIds = [];
     closeConfirm();
     for (const id of idsToDelete) {
       try { await fetch('/api/admin/cards/'+id, {method:'DELETE'}); } catch {}
     }
-    pendingDeleteIds = [];
     selectedIds.clear();
     await loadCards();
     showToast('Card(s) deleted successfully','success');
