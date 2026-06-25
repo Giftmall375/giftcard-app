@@ -252,6 +252,7 @@
             <th>Balance</th>
             <th class="hide-sm">Expiry</th>
             <th>Status</th>
+            <th class="hide-sm">Date Added</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -430,6 +431,7 @@
         <td class="balance-cell${c.balance===0?' zero':''}">$${c.balance.toLocaleString('en-US',{minimumFractionDigits:2})}</td>
         <td class="hide-sm">${c.expiry}</td>
         <td><span class="pill ${c.status}">${c.status}</span></td>
+        <td class="hide-sm" style="color:var(--steel);font-size:12px;white-space:nowrap">${c.created_at ? (() => { const d = new Date(c.created_at); return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) + '<br><span style="font-size:11px">' + d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) + '</span>'; })() : '—'}</td>
         <td>
           <div class="actions">
             <button class="action-btn edit" onclick="openEditModal(${c.id})">Edit</button>
