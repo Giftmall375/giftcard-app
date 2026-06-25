@@ -11,9 +11,35 @@ const envMongoUser = process.env.MONGO_USER;
 const envMongoPass = process.env.MONGO_PASSWORD;
 const envMongoHost = process.env.MONGO_HOST;
 
-const MONGO_URI = envMongoUri || (envMongoUser && envMongoPass && envMongoHost
-  ? `mongodb+srv://${encodeURIComponent(envMongoUser)}:${encodeURIComponent(envMongoPass)}@${envMongoHost}/?appName=Cluster0`
-  : DEFAULT_MONGO_URI);
+function normalizeMongoUri(uri) {
+  if (!uri) return uri;
+  try {
+    new URL(uri.replace(/^mongodb\+srv:/, 'https:'));
+    return uri;
+  } catch {
+    const match = uri.match(/^(mongodb(?:\+srv)?:\/\/)([^/]*)(\/.*)?$/);
+    if (!match) return uri;
+
+    const scheme = match[1];
+    const authAndHost = match[2];
+    const path = match[3] || '';
+    const lastAt = authAndHost.lastIndexOf('@');
+    if (lastAt === -1) return uri;
+
+    const creds = authAndHost.slice(0, lastAt);
+    const host = authAndHost.slice(lastAt + 1);
+    const [user, pass] = creds.split(':');
+    if (!user || pass === undefined) return uri;
+
+    return `${scheme}${encodeURIComponent(user)}:${encodeURIComponent(pass)}@${host}${path}`;
+  }
+}
+
+const MONGO_URI = envMongoUri
+  ? normalizeMongoUri(envMongoUri)
+  : (envMongoUser && envMongoPass && envMongoHost
+      ? `mongodb+srv://${encodeURIComponent(envMongoUser)}:${encodeURIComponent(envMongoPass)}@${envMongoHost}/?appName=Cluster0`
+      : DEFAULT_MONGO_URI);
 
 app.use(cors());
 app.use(express.json());
