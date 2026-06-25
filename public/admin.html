@@ -734,16 +734,14 @@
   // ── DELETE ────────────────────────────────────────────
   let deleteCallback = null;
 
- async function confirmSingleDelete(id) {
-    if (!confirm('Are you sure you want to delete this card?')) return;
-    try {
-      const res = await fetch(`/api/admin/cards/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error();
-      await loadCards();
-      showToast('✓ Card deleted', 'success');
-    } catch {
-      showToast('Failed to delete card.', 'error');
-    }
+ function confirmSingleDelete(id) {
+    const card = cards.find(c => c.id === id);
+    if (!card) return;
+    pendingDeleteIds = [id];
+    document.getElementById('confirm-title').textContent = 'Delete Card?';
+    document.getElementById('confirm-message').textContent = `Delete card ending in ${card.num.slice(-4)}?`;
+    document.getElementById('confirm-overlay').classList.add('open');
+  }
   }
 
   function confirmBulkDelete() {
@@ -765,19 +763,16 @@
 
   async function executeDelete() {
     closeConfirm();
-    let successCount = 0;
     for (const id of pendingDeleteIds) {
       try {
-        const res = await fetch(`/api/admin/cards/${id}`, { method: 'DELETE' });
-        if (res.ok) successCount++;
+        await fetch(`/api/admin/cards/${id}`, { method: 'DELETE' });
       } catch {}
     }
     pendingDeleteIds = [];
     selectedIds.clear();
     await loadCards();
-    showToast(`✓ ${successCount} card${successCount > 1 ? 's' : ''} deleted`, 'success');
+    showToast('✓ Card deleted', 'success');
   }
-
   // ── QUICK TOGGLE ──────────────────────────────────────
   async function quickToggle(id, newStatus) {
     try {
