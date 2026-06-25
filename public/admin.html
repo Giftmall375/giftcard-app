@@ -734,12 +734,16 @@
   // ── DELETE ────────────────────────────────────────────
   let deleteCallback = null;
 
-  function confirmSingleDelete(id) {
-    const card = cards.find(c => c.id === id);
-    pendingDeleteIds = [id];
-    document.getElementById('confirm-title').textContent = 'Delete Card?';
-    document.getElementById('confirm-message').textContent = `This will permanently delete card ending in ${card.num.slice(-4)}. This cannot be undone.`;
-    document.getElementById('confirm-overlay').classList.add('open');
+ async function confirmSingleDelete(id) {
+    if (!confirm('Are you sure you want to delete this card?')) return;
+    try {
+      const res = await fetch(`/api/admin/cards/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      await loadCards();
+      showToast('✓ Card deleted', 'success');
+    } catch {
+      showToast('Failed to delete card.', 'error');
+    }
   }
 
   function confirmBulkDelete() {
