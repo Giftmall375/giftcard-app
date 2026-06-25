@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gift Cards</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:    #0F1B35;
+      --navy2:   #162040;
+      --card-bg: #192545;
+      --gold:    #D4A843;
+      --white:   #F8F6F0;
+      --steel:   #8A95A3;
+      --green:   #2ECC8A;
+    }
+
+    html, body {
+      min-height: 100vh;
+      background: var(--navy);
+      color: var(--white);
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    /* ── Header ── */
+    header { text-align: center; margin-bottom: 56px; }
+
+    .logo-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--card-bg);
+      border: 1px solid rgba(212,168,67,0.25);
+      border-radius: 999px;
+      padding: 6px 16px 6px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gold);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    header h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(32px, 6vw, 52px);
+      line-height: 1.1;
+      margin-bottom: 14px;
+    }
+
+    header h1 span {
+      color: var(--gold);
+    }
+
+    header p {
+      color: var(--steel);
+      font-size: 16px;
+      max-width: 360px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* ── Cards grid ── */
+    .options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      width: 100%;
+      max-width: 620px;
+    }
+
+    @media (max-width: 500px) {
+      .options { grid-template-columns: 1fr; max-width: 380px; }
+    }
+
+    .option-card {
+      background: var(--card-bg);
+      border: 1.5px solid rgba(255,255,255,0.07);
+      border-radius: 20px;
+      padding: 36px 28px 32px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.18s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .option-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .option-card.balance::before {
+      background: radial-gradient(ellipse at top left, rgba(46,204,138,0.08), transparent 70%);
+    }
+
+    .option-card.activate::before {
+      background: radial-gradient(ellipse at top left, rgba(212,168,67,0.1), transparent 70%);
+    }
+
+    .option-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    }
+
+    .option-card.balance:hover { border-color: rgba(46,204,138,0.4); }
+    .option-card.activate:hover { border-color: rgba(212,168,67,0.4); }
+    .option-card:hover::before { opacity: 1; }
+
+    .option-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      flex-shrink: 0;
+    }
+
+    .option-card.balance .option-icon { background: rgba(46,204,138,0.12); color: var(--green); }
+    .option-card.activate .option-icon { background: rgba(212,168,67,0.12); color: var(--gold); }
+
+    .option-card h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      line-height: 1.2;
+    }
+
+    .option-card p {
+      font-size: 13.5px;
+      color: var(--steel);
+      line-height: 1.55;
+      margin-bottom: 28px;
+      flex: 1;
+    }
+
+    .option-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      transition: gap 0.18s;
+    }
+
+    .option-card.balance .option-cta { color: var(--green); }
+    .option-card.activate .option-cta { color: var(--gold); }
+    .option-card:hover .option-cta { gap: 10px; }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 48px;
+      font-size: 12px;
+      color: rgba(138,149,163,0.5);
+      text-align: center;
+    }
+    footer a { color: var(--steel); text-decoration: underline; text-decoration-color: transparent; transition: text-decoration-color 0.2s; }
+    footer a:hover { text-decoration-color: var(--steel); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-chip">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <rect x="1" y="4" width="14" height="9" rx="2" stroke="#D4A843" stroke-width="1.5"/>
+        <path d="M1 7h14" stroke="#D4A843" stroke-width="1.5"/>
+        <circle cx="4.5" cy="10.5" r="1" fill="#D4A843"/>
+      </svg>
+      Gift Cards
+    </div>
+    <h1>What would you like<br>to <span>do today?</span></h1>
+    <p>Manage your gift cards quickly and securely.</p>
+  </header>
+
+  <div class="options">
+
+    <!-- Check Balance -->
+    <a class="option-card balance" href="giftcard-balance.html">
+      <div class="option-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <rect x="2" y="6" width="20" height="13" rx="2.5" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M2 10h20" stroke="currentColor" stroke-width="1.8"/>
+          <circle cx="6.5" cy="14.5" r="1.2" fill="currentColor"/>
+          <path d="M10 14.5h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h2>Check Balance</h2>
+      <p>See how much credit is left on your gift card instantly.</p>
+      <div class="option-cta">
+        Check now
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </a>
+
+    <!-- Activate Card -->
+    <a class="option-card activate" href="activate.html">
+      <div class="option-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M12 3v2M12 19v2M3 12H1M23 12h-2M5.6 5.6 4.2 4.2M19.8 19.8l-1.4-1.4M5.6 18.4l-1.4 1.4M19.8 4.2l-1.4 1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/>
+        </svg>
+      </div>
+      <h2>Activate Card</h2>
+      <p>Got a new gift card? Activate it here before using it.</p>
+      <div class="option-cta">
+        Activate now
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </a>
+
+  </div>
+
+  <footer>
+    Need help? <a href="#">Contact support</a> &nbsp;·&nbsp; <a href="#">Terms of use</a>
+  </footer>
+
+</body>
+</html>

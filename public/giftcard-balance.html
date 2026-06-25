@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gift Card Balance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:   #0F1B35;
+      --navy2:  #162040;
+      --gold:   #D4A843;
+      --gold-dim: #a07c28;
+      --white:  #F8F6F0;
+      --steel:  #8A95A3;
+      --green:  #2ECC8A;
+      --red:    #E05C5C;
+      --card-bg: #192545;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--navy);
+      color: var(--white);
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .logo-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--card-bg);
+      border: 1px solid rgba(212,168,67,0.25);
+      border-radius: 999px;
+      padding: 6px 16px 6px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gold);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .logo-chip svg { flex-shrink: 0; }
+    header h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(28px, 5vw, 42px);
+      color: var(--white);
+      line-height: 1.1;
+    }
+    header p {
+      color: var(--steel);
+      font-size: 15px;
+      margin-top: 10px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 20px;
+      padding: 36px 32px;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+    }
+
+    /* ── Input group ── */
+    .field {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--steel);
+      margin-bottom: 8px;
+    }
+    .input-wrap {
+      position: relative;
+    }
+    input[type="text"] {
+      width: 100%;
+      background: var(--navy);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      color: var(--white);
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      padding: 14px 46px 14px 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]::placeholder { color: rgba(138,149,163,0.5); letter-spacing: 0.04em; }
+    input[type="text"]:focus { border-color: var(--gold); }
+
+    .input-icon {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--steel);
+      pointer-events: none;
+    }
+
+    .pin-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .pin-row .field { flex: 1; margin-bottom: 0; }
+
+    /* ── Button ── */
+    button.check-btn {
+      width: 100%;
+      margin-top: 24px;
+      background: var(--gold);
+      color: var(--navy);
+      border: none;
+      border-radius: 10px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      padding: 15px;
+      cursor: pointer;
+      transition: background 0.18s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    button.check-btn:hover { background: #e6b94c; }
+    button.check-btn:active { transform: scale(0.98); }
+    button.check-btn:disabled { background: #6e5a28; color: rgba(15,27,53,0.5); cursor: not-allowed; transform: none; }
+
+    /* spinner */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2.5px solid rgba(15,27,53,0.3);
+      border-top-color: var(--navy);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Result panel ── */
+    .result {
+      margin-top: 28px;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      padding-top: 28px;
+      text-align: center;
+      display: none;
+    }
+    .result.visible { display: block; animation: fadeUp 0.35s ease; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--steel);
+      margin-bottom: 10px;
+    }
+    .result-amount {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(52px, 12vw, 72px);
+      line-height: 1;
+      color: var(--green);
+      text-shadow: 0 0 40px rgba(46,204,138,0.35);
+      letter-spacing: -0.01em;
+    }
+    .result-amount.zero { color: var(--steel); text-shadow: none; }
+
+    .result-meta {
+      display: flex;
+      justify-content: center;
+      gap: 28px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .meta-item { text-align: center; }
+    .meta-item .val {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--white);
+    }
+    .meta-item .key {
+      font-size: 11px;
+      color: var(--steel);
+      margin-top: 2px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* ── Error ── */
+    .error-msg {
+      display: none;
+      margin-top: 14px;
+      background: rgba(224,92,92,0.1);
+      border: 1px solid rgba(224,92,92,0.3);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: var(--red);
+      text-align: center;
+    }
+    .error-msg.visible { display: block; }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 32px;
+      font-size: 12px;
+      color: rgba(138,149,163,0.5);
+      text-align: center;
+      max-width: 460px;
+    }
+    footer a { color: var(--steel); text-decoration: underline; text-decoration-color: transparent; transition: text-decoration-color 0.2s; }
+    footer a:hover { text-decoration-color: var(--steel); }
+
+    @media (max-width: 400px) {
+      .card { padding: 28px 20px; }
+    }
+    .back {
+      position: fixed;
+      top: 24px;
+      left: 24px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--steel);
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: color 0.18s;
+    }
+    .back:hover { color: var(--white); }
+
+  </style>
+</head>
+<body>
+
+  <a class="back" href="index.html">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Back
+  </a>
+
+  <header>
+    <div class="logo-chip">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <rect x="1" y="4" width="14" height="9" rx="2" stroke="#D4A843" stroke-width="1.5"/>
+        <path d="M1 7h14" stroke="#D4A843" stroke-width="1.5"/>
+        <circle cx="4.5" cy="10.5" r="1" fill="#D4A843"/>
+      </svg>
+      Gift Cards
+    </div>
+    <h1>Check Your Balance</h1>
+    <p>Enter your card details to see what's available.</p>
+  </header>
+
+  <div class="card">
+
+    <div class="field">
+      <label for="card-number">Card Number</label>
+      <div class="input-wrap">
+        <input id="card-number" type="text" placeholder="XXXX XXXX XXXX XXXX" maxlength="19" autocomplete="off" spellcheck="false" />
+        <span class="input-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <rect x="1" y="4" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M1 8h16" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+        </span>
+      </div>
+    </div>
+
+    <div class="pin-row">
+      <div class="field">
+        <label for="expiry">Expiration Date</label>
+        <div class="input-wrap">
+          <input id="expiry" type="text" placeholder="MM/YY" maxlength="5" autocomplete="off" />
+          <span class="input-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <rect x="1" y="2.5" width="14" height="12" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M1 6.5h14" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M5 1v3M11 1v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="pin">PIN (optional)</label>
+        <div class="input-wrap">
+          <input id="pin" type="text" placeholder="••••" maxlength="8" autocomplete="off" />
+          <span class="input-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <button class="check-btn" id="check-btn" onclick="checkBalance()">
+      <div class="spinner" id="spinner"></div>
+      <span id="btn-label">Check Balance</span>
+    </button>
+
+    <div class="error-msg" id="error-msg"></div>
+
+    <div class="result" id="result">
+      <div class="result-label">Available Balance</div>
+      <div class="result-amount" id="result-amount">$0.00</div>
+      <div class="result-meta">
+        <div class="meta-item">
+          <div class="val" id="result-card">—</div>
+          <div class="key">Card</div>
+        </div>
+        <div class="meta-item">
+          <div class="val" id="result-expiry">—</div>
+          <div class="key">Expires</div>
+        </div>
+        <div class="meta-item">
+          <div class="val" id="result-status">—</div>
+          <div class="key">Status</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    Lost your card or need help? <a href="#">Contact support</a> &nbsp;·&nbsp; <a href="#">Terms of use</a>
+  </footer>
+
+  <script>
+    // ── Format card number input ──────────────────────────────
+    document.getElementById('card-number').addEventListener('input', function (e) {
+      let v = e.target.value.replace(/\D/g, '').slice(0, 16);
+      e.target.value = v.replace(/(.{4})/g, '$1 ').trim();
+    });
+
+    // ── Format expiry input (MM/YY) ───────────────────────────
+    document.getElementById('expiry').addEventListener('input', function (e) {
+      let v = e.target.value.replace(/\D/g, '').slice(0, 4);
+      if (v.length >= 3) v = v.slice(0, 2) + '/' + v.slice(2);
+      e.target.value = v;
+    });
+
+    // ── Real API balance lookup ──────────────────────────────
+    async function simulateLookup(cardNumber, expiry, pin) {
+      const res = await fetch('/api/cards/balance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ num: cardNumber, expiry, pin })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+      return data;
+    }
+
+    // ── Animate number count-up ───────────────────────────────
+    function animateBalance(targetVal) {
+      const el = document.getElementById('result-amount');
+      const duration = 800;
+      const start = performance.now();
+      function tick(now) {
+        const t = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - t, 3);
+        const current = (targetVal * eased).toFixed(2);
+        el.textContent = '$' + parseFloat(current).toLocaleString('en-US', { minimumFractionDigits: 2 });
+        if (t < 1) requestAnimationFrame(tick);
+        else el.textContent = '$' + targetVal.toLocaleString('en-US', { minimumFractionDigits: 2 });
+      }
+      requestAnimationFrame(tick);
+    }
+
+    // ── Main handler ──────────────────────────────────────────
+    async function checkBalance() {
+      const cardNumber = document.getElementById('card-number').value.trim();
+      const expiry = document.getElementById('expiry').value.trim();
+      const pin = document.getElementById('pin').value.trim();
+      const btn = document.getElementById('check-btn');
+      const spinner = document.getElementById('spinner');
+      const btnLabel = document.getElementById('btn-label');
+      const errorMsg = document.getElementById('error-msg');
+      const result = document.getElementById('result');
+
+      // Reset state
+      errorMsg.classList.remove('visible');
+      result.classList.remove('visible');
+
+      if (!cardNumber) {
+        showError('Enter a card number to check the balance.');
+        return;
+      }
+
+      // Loading state
+      btn.disabled = true;
+      spinner.style.display = 'block';
+      btnLabel.textContent = 'Checking…';
+
+      try {
+        const data = await simulateLookup(cardNumber, expiry, pin);
+
+        // Populate result
+        const amountEl = document.getElementById('result-amount');
+        amountEl.className = 'result-amount' + (data.balance === 0 ? ' zero' : '');
+
+        document.getElementById('result-card').textContent = data.card;
+        document.getElementById('result-expiry').textContent = data.expiry;
+        document.getElementById('result-status').textContent = data.status;
+
+        result.classList.add('visible');
+        animateBalance(data.balance);
+
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        btnLabel.textContent = 'Check Balance';
+      }
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('error-msg');
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+
+    // Allow Enter key to submit
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') checkBalance();
+    });
+  </script>
+
+</body>
+</html>

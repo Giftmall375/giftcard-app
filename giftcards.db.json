@@ -1,0 +1,72 @@
+{
+  "cards": [
+    {
+      "num": "4111111111111111",
+      "holder": "Sarah Johnson",
+      "balance": 75,
+      "expiry": "12/27",
+      "pin": "1234",
+      "status": "active",
+      "id": 1,
+      "created_at": "2026-06-25T14:02:07.308Z"
+    },
+    {
+      "num": "5500000000000004",
+      "holder": "James Liu",
+      "balance": 0,
+      "expiry": "06/25",
+      "pin": "5678",
+      "status": "inactive",
+      "id": 2,
+      "created_at": "2026-06-25T14:02:07.309Z"
+    },
+    {
+      "num": "3714496353984310",
+      "holder": "Maria Garcia",
+      "balance": 200.5,
+      "expiry": "03/28",
+      "pin": "9012",
+      "status": "active",
+      "id": 3,
+      "created_at": "2026-06-25T14:02:07.309Z"
+    },
+    {
+      "num": "6011111111111117",
+      "holder": "Tom Baker",
+      "balance": 50,
+      "expiry": "09/26",
+      "pin": "3456",
+      "status": "pending",
+      "id": 4,
+      "created_at": "2026-06-25T14:02:07.309Z"
+    },
+    {
+      "num": "3530111333300000",
+      "holder": "Aisha Patel",
+      "balance": 125,
+      "expiry": "11/27",
+      "pin": "7890",
+      "status": "active",
+      "id": 5,
+      "created_at": "2026-06-25T14:02:07.309Z"
+    },
+    {
+      "num": "4012888888881881",
+      "holder": "Chris Evans",
+      "balance": 10,
+      "expiry": "01/26",
+      "pin": "2345",
+      "status": "inactive",
+      "id": 6,
+      "created_at": "2026-06-25T14:02:07.309Z"
+    }
+  ],
+  "admins": [
+    {
+      "id": 1,
+      "username": "admin",
+      "password": "admin123"
+    }
+  ],
+  "nextCardId": 7
+}
