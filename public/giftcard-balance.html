@@ -79,20 +79,6 @@
 
   <div class="card">
 
-    <!-- NAME (new) -->
-    <div class="field">
-      <label for="holder-name">Full Name</label>
-      <div class="input-wrap">
-        <input id="holder-name" type="text" placeholder="Jane Smith" autocomplete="name" />
-        <span class="input-icon">
-          <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
-            <circle cx="8.5" cy="5.5" r="3" stroke="currentColor" stroke-width="1.5"/>
-            <path d="M2 14c0-3 3-5 6.5-5s6.5 2 6.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-        </span>
-      </div>
-    </div>
-
     <div class="field">
       <label for="card-number">Card Number</label>
       <div class="input-wrap">
@@ -183,7 +169,6 @@
     }
 
     async function checkBalance() {
-      const name   = document.getElementById('holder-name').value.trim();
       const cardNumber = document.getElementById('card-number').value.trim();
       const expiry = document.getElementById('expiry').value.trim();
       const pin    = document.getElementById('pin').value.trim();
@@ -197,7 +182,6 @@
       errorMsg.classList.remove('visible');
       result.classList.remove('visible');
 
-      if (!name)       { showError('Please enter your full name.'); return; }
       if (!cardNumber) { showError('Enter a card number to check the balance.'); return; }
 
       btn.disabled = true;
@@ -208,7 +192,7 @@
         const res = await fetch('/api/cards/balance', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ num: cardNumber, expiry, pin, holder: name })
+          body: JSON.stringify({ num: cardNumber, expiry, pin })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Something went wrong.');
