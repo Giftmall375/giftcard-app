@@ -67,6 +67,18 @@ app.post('/api/auth/login', (req, res) => {
   res.json({ success: true, username: admin.username });
 });
 
+app.post('/api/auth/change-password', (req, res) => {
+  const { username, currentPassword, newPassword } = req.body;
+  if (!username || !currentPassword || !newPassword)
+    return res.status(400).json({ error: 'All fields are required.' });
+  const admin = data.admins.find(a => a.username === username && a.password === currentPassword);
+  if (!admin)
+    return res.status(401).json({ error: 'Current password is incorrect.' });
+  admin.password = newPassword;
+  save();
+  res.json({ success: true });
+});
+
 // ── PUBLIC CARD ROUTES ────────────────────────────────────
 app.post('/api/cards/balance', (req, res) => {
   const { num, expiry, pin } = req.body;
@@ -170,5 +182,5 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`\n✅  Gift Card Server running at http://localhost:${PORT}`);
-  console.log(`   Admin login: admin / Itsme@2020\n`);
+  console.log(`   Admin login: admin / admin123\n`);
 });
