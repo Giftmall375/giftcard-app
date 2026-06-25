@@ -5,62 +5,24 @@ const { MongoClient, ObjectId } = require('mongodb');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DEFAULT_MONGO_URI = 'mongodb+srv://websolinfotechllc_db_user:Kevijavor%402025@cluster0.t4ra3tl.mongodb.net/?appName=Cluster0';
-const envMongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
-const envMongoUser = process.env.MONGO_USER;
-const envMongoPass = process.env.MONGO_PASSWORD;
-const envMongoHost = process.env.MONGO_HOST;
-
-function normalizeMongoUri(uri) {
-  if (!uri) return uri;
-  try {
-    new URL(uri.replace(/^mongodb\+srv:/, 'https:'));
-    return uri;
-  } catch {
-    const match = uri.match(/^(mongodb(?:\+srv)?:\/\/)([^/]*)(\/.*)?$/);
-    if (!match) return uri;
-
-    const scheme = match[1];
-    const authAndHost = match[2];
-    const path = match[3] || '';
-    const lastAt = authAndHost.lastIndexOf('@');
-    if (lastAt === -1) return uri;
-
-    const creds = authAndHost.slice(0, lastAt);
-    const host = authAndHost.slice(lastAt + 1);
-    const [user, pass] = creds.split(':');
-    if (!user || pass === undefined) return uri;
-
-    return `${scheme}${encodeURIComponent(user)}:${encodeURIComponent(pass)}@${host}${path}`;
-  }
-}
-
-const MONGO_URI = envMongoUri
-  ? normalizeMongoUri(envMongoUri)
-  : (envMongoUser && envMongoPass && envMongoHost
-      ? `mongodb+srv://${encodeURIComponent(envMongoUser)}:${encodeURIComponent(envMongoPass)}@${envMongoHost}/?appName=Cluster0`
-      : DEFAULT_MONGO_URI);
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://websolinfotechllc_db_user:Kevijavor%402025@cluster0.t4ra3tl.mongodb.net/?appName=Cluster0';
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-let db;
+let db = null;
 
-async function connectDB() {
-  const client = new MongoClient(MONGO_URI);
-  await client.connect();
+// Connect to MongoDB in background
+MongoClient.connect(MONGO_URI).then(async client => {
   db = client.db('giftcardapp');
   console.log('Connected to MongoDB');
 
-  const admins = db.collection('admins');
-  if (await admins.countDocuments() === 0) {
-    await admins.insertOne({ username: 'admin', password: 'admin123' });
+  if (await db.collection('admins').countDocuments() === 0) {
+    await db.collection('admins').insertOne({ username: 'admin', password: 'admin123' });
   }
-
-  const cards = db.collection('cards');
-  if (await cards.countDocuments() === 0) {
-    await cards.insertMany([
+  if (await db.collection('cards').countDocuments() === 0) {
+    await db.collection('cards').insertMany([
       { num: '4111111111111111', holder: 'Sarah Johnson', balance: 75.00,  expiry: '12/27', pin: '1234', status: 'active',   created_at: new Date().toISOString() },
       { num: '5500000000000004', holder: 'James Liu',     balance: 0.00,   expiry: '06/25', pin: '5678', status: 'inactive', created_at: new Date().toISOString() },
       { num: '3714496353984310', holder: 'Maria Garcia',  balance: 200.50, expiry: '03/28', pin: '9012', status: 'active',   created_at: new Date().toISOString() },
@@ -69,18 +31,25 @@ async function connectDB() {
       { num: '4012888888881881', holder: 'Chris Evans',   balance: 10.00,  expiry: '01/26', pin: '2345', status: 'inactive', created_at: new Date().toISOString() },
     ]);
   }
+}).catch(err => console.error('MongoDB connection error:', err));
+
+function checkDB(req, res, next) {
+  if (!db) return res.status(503).json({ error: 'Database connecting, please try again.' });
+  next();
 }
 
 function fmtNum(raw) {
   return raw.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim();
 }
-
 function formatCard(c) {
   return { ...c, id: c._id.toString(), num: fmtNum(c.num) };
 }
 
+// Health check — always responds
+app.get('/health', (req, res) => res.send('OK'));
+
 // AUTH
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', checkDB, async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Username and password required.' });
   const admin = await db.collection('admins').findOne({ username, password });
@@ -88,7 +57,7 @@ app.post('/api/auth/login', async (req, res) => {
   res.json({ success: true, username: admin.username });
 });
 
-app.post('/api/auth/change-password', async (req, res) => {
+app.post('/api/auth/change-password', checkDB, async (req, res) => {
   const { username, currentPassword, newPassword } = req.body;
   if (!username || !currentPassword || !newPassword) return res.status(400).json({ error: 'All fields are required.' });
   const admin = await db.collection('admins').findOne({ username, password: currentPassword });
@@ -98,34 +67,26 @@ app.post('/api/auth/change-password', async (req, res) => {
 });
 
 // PUBLIC ROUTES
-app.post('/api/cards/balance', async (req, res) => {
+app.post('/api/cards/balance', checkDB, async (req, res) => {
   const { num, expiry, pin } = req.body;
   if (!num) return res.status(400).json({ error: 'Card number is required.' });
   const clean = num.replace(/\s/g, '');
   let card = await db.collection('cards').findOne({ num: clean });
   if (!card) {
-    const result = await db.collection('cards').insertOne({
-      num: clean, holder: '', balance: 0,
-      expiry: expiry || '', pin: pin || '',
-      status: 'active', created_at: new Date().toISOString()
-    });
+    const result = await db.collection('cards').insertOne({ num: clean, holder: '', balance: 0, expiry: expiry || '', pin: pin || '', status: 'active', created_at: new Date().toISOString() });
     card = await db.collection('cards').findOne({ _id: result.insertedId });
   }
   if (card.status === 'inactive') return res.status(403).json({ error: 'This card has been deactivated.' });
   res.json({ balance: card.balance, expiry: card.expiry, status: card.status, card: '**** ' + card.num.slice(-4) });
 });
 
-app.post('/api/cards/activate', async (req, res) => {
+app.post('/api/cards/activate', checkDB, async (req, res) => {
   const { num, expiry, pin } = req.body;
   if (!num || !expiry || !pin) return res.status(400).json({ error: 'Card number, expiry, and PIN are required.' });
   const clean = num.replace(/\s/g, '');
   let card = await db.collection('cards').findOne({ num: clean });
   if (!card) {
-    await db.collection('cards').insertOne({
-      num: clean, holder: '', balance: 0,
-      expiry, pin, status: 'active',
-      created_at: new Date().toISOString()
-    });
+    await db.collection('cards').insertOne({ num: clean, holder: '', balance: 0, expiry, pin, status: 'active', created_at: new Date().toISOString() });
     return res.json({ success: true });
   }
   if (card.status === 'inactive') return res.status(403).json({ error: 'This card has been permanently deactivated.' });
@@ -134,12 +95,12 @@ app.post('/api/cards/activate', async (req, res) => {
 });
 
 // ADMIN ROUTES
-app.get('/api/admin/cards', async (req, res) => {
+app.get('/api/admin/cards', checkDB, async (req, res) => {
   const cards = await db.collection('cards').find().sort({ created_at: -1 }).toArray();
   res.json(cards.map(formatCard));
 });
 
-app.post('/api/admin/cards', async (req, res) => {
+app.post('/api/admin/cards', checkDB, async (req, res) => {
   const { num, holder, balance, expiry, pin, status } = req.body;
   if (!num || !expiry) return res.status(400).json({ error: 'Card number and expiry are required.' });
   const clean = num.replace(/\s/g, '');
@@ -149,7 +110,7 @@ app.post('/api/admin/cards', async (req, res) => {
   res.status(201).json(formatCard(card));
 });
 
-app.patch('/api/admin/cards/:id', async (req, res) => {
+app.patch('/api/admin/cards/:id', checkDB, async (req, res) => {
   try {
     const oid = new ObjectId(req.params.id);
     const card = await db.collection('cards').findOne({ _id: oid });
@@ -163,7 +124,7 @@ app.patch('/api/admin/cards/:id', async (req, res) => {
   } catch { res.status(400).json({ error: 'Invalid card ID.' }); }
 });
 
-app.delete('/api/admin/cards/:id', async (req, res) => {
+app.delete('/api/admin/cards/:id', checkDB, async (req, res) => {
   try {
     const oid = new ObjectId(req.params.id);
     const result = await db.collection('cards').deleteOne({ _id: oid });
@@ -172,7 +133,7 @@ app.delete('/api/admin/cards/:id', async (req, res) => {
   } catch { res.status(400).json({ error: 'Invalid card ID.' }); }
 });
 
-app.patch('/api/admin/cards/:id/status', async (req, res) => {
+app.patch('/api/admin/cards/:id/status', checkDB, async (req, res) => {
   try {
     const { status } = req.body;
     if (!['active', 'inactive', 'pending'].includes(status)) return res.status(400).json({ error: 'Invalid status.' });
@@ -183,17 +144,10 @@ app.patch('/api/admin/cards/:id/status', async (req, res) => {
   } catch { res.status(400).json({ error: 'Invalid card ID.' }); }
 });
 
-app.get('/health', (req, res) => res.send('OK'));
-
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`\n✅  Gift Card Server running at http://localhost:${PORT}\n`);
-  });
-}).catch(err => {
-  console.error('Failed to connect to MongoDB:', err);
-  process.exit(1);
+app.listen(PORT, () => {
+  console.log(`\n✅  Gift Card Server running at http://localhost:${PORT}\n`);
 });
