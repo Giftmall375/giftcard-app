@@ -1,158 +1,156 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs');
+const { MongoClient, ObjectId } = require('mongodb');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DB_FILE = path.join(__dirname, 'giftcards.db.json');
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://websolinfotechllc_db_user:Kevijavor@2025@cluster0.t4ra3tl.mongodb.net/?appName=Cluster0';
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-let data = {
-  cards: [],
-  admins: [{ id: 1, username: 'admin', password: 'admin123' }],
-  nextCardId: 1
-};
+let db;
 
-if (fs.existsSync(DB_FILE)) {
-  try {
-    data = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-    if (!data.admins) data.admins = [{ id: 1, username: 'admin', password: 'admin123' }];
-  } catch (e) {
-    console.log('Starting with fresh database.');
+async function connectDB() {
+  const client = new MongoClient(MONGO_URI);
+  await client.connect();
+  db = client.db('giftcardapp');
+  console.log('Connected to MongoDB');
+
+  // Seed admin if not exists
+  const admins = db.collection('admins');
+  const adminCount = await admins.countDocuments();
+  if (adminCount === 0) {
+    await admins.insertOne({ username: 'admin', password: 'admin123' });
   }
-}
 
-function save() {
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-}
-
-if (data.cards.length === 0) {
-  const seeds = [
-    { num: '4111111111111111', holder: 'Sarah Johnson', balance: 75.00,  expiry: '12/27', pin: '1234', status: 'active'   },
-    { num: '5500000000000004', holder: 'James Liu',     balance: 0.00,   expiry: '06/25', pin: '5678', status: 'inactive' },
-    { num: '3714496353984310', holder: 'Maria Garcia',  balance: 200.50, expiry: '03/28', pin: '9012', status: 'active'   },
-    { num: '6011111111111117', holder: 'Tom Baker',     balance: 50.00,  expiry: '09/26', pin: '3456', status: 'pending'  },
-    { num: '3530111333300000', holder: 'Aisha Patel',   balance: 125.00, expiry: '11/27', pin: '7890', status: 'active'   },
-    { num: '4012888888881881', holder: 'Chris Evans',   balance: 10.00,  expiry: '01/26', pin: '2345', status: 'inactive' },
-  ];
-  seeds.forEach(s => {
-    data.cards.push({ ...s, id: data.nextCardId++, created_at: new Date().toISOString() });
-  });
-  save();
+  // Seed demo cards if not exists
+  const cards = db.collection('cards');
+  const cardCount = await cards.countDocuments();
+  if (cardCount === 0) {
+    await cards.insertMany([
+      { num: '4111111111111111', holder: 'Sarah Johnson', balance: 75.00,  expiry: '12/27', pin: '1234', status: 'active',   created_at: new Date().toISOString() },
+      { num: '5500000000000004', holder: 'James Liu',     balance: 0.00,   expiry: '06/25', pin: '5678', status: 'inactive', created_at: new Date().toISOString() },
+      { num: '3714496353984310', holder: 'Maria Garcia',  balance: 200.50, expiry: '03/28', pin: '9012', status: 'active',   created_at: new Date().toISOString() },
+      { num: '6011111111111117', holder: 'Tom Baker',     balance: 50.00,  expiry: '09/26', pin: '3456', status: 'pending',  created_at: new Date().toISOString() },
+      { num: '3530111333300000', holder: 'Aisha Patel',   balance: 125.00, expiry: '11/27', pin: '7890', status: 'active',   created_at: new Date().toISOString() },
+      { num: '4012888888881881', holder: 'Chris Evans',   balance: 10.00,  expiry: '01/26', pin: '2345', status: 'inactive', created_at: new Date().toISOString() },
+    ]);
+  }
 }
 
 function fmtNum(raw) {
   return raw.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim();
 }
-function findCard(id) {
-  return data.cards.find(c => c.id === parseInt(id));
+
+function formatCard(c) {
+  return { ...c, id: c._id.toString(), num: fmtNum(c.num) };
 }
 
 // AUTH
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Username and password required.' });
-  const admin = data.admins.find(a => a.username === username && a.password === password);
+  const admin = await db.collection('admins').findOne({ username, password });
   if (!admin) return res.status(401).json({ error: 'Incorrect username or password.' });
   res.json({ success: true, username: admin.username });
 });
 
-app.post('/api/auth/change-password', (req, res) => {
+app.post('/api/auth/change-password', async (req, res) => {
   const { username, currentPassword, newPassword } = req.body;
   if (!username || !currentPassword || !newPassword) return res.status(400).json({ error: 'All fields are required.' });
-  const admin = data.admins.find(a => a.username === username && a.password === currentPassword);
+  const admin = await db.collection('admins').findOne({ username, password: currentPassword });
   if (!admin) return res.status(401).json({ error: 'Current password is incorrect.' });
-  admin.password = newPassword;
-  save();
+  await db.collection('admins').updateOne({ username }, { $set: { password: newPassword } });
   res.json({ success: true });
 });
 
 // PUBLIC ROUTES
-app.post('/api/cards/balance', (req, res) => {
+app.post('/api/cards/balance', async (req, res) => {
   const { num, expiry, pin } = req.body;
   if (!num) return res.status(400).json({ error: 'Card number is required.' });
   const clean = num.replace(/\s/g, '');
-  let card = data.cards.find(c => c.num === clean);
+  let card = await db.collection('cards').findOne({ num: clean });
   if (!card) {
-    card = { id: data.nextCardId++, num: clean, holder: '', balance: 0, expiry: expiry || '', pin: pin || '', status: 'active', created_at: new Date().toISOString() };
-    data.cards.push(card);
-    save();
+    const result = await db.collection('cards').insertOne({ num: clean, holder: '', balance: 0, expiry: expiry || '', pin: pin || '', status: 'active', created_at: new Date().toISOString() });
+    card = await db.collection('cards').findOne({ _id: result.insertedId });
   }
   if (card.status === 'inactive') return res.status(403).json({ error: 'This card has been deactivated.' });
   res.json({ balance: card.balance, expiry: card.expiry, status: card.status, card: '**** ' + card.num.slice(-4) });
 });
 
-app.post('/api/cards/activate', (req, res) => {
+app.post('/api/cards/activate', async (req, res) => {
   const { num, expiry, pin } = req.body;
   if (!num || !expiry || !pin) return res.status(400).json({ error: 'Card number, expiry, and PIN are required.' });
   const clean = num.replace(/\s/g, '');
-  const card = data.cards.find(c => c.num === clean);
+  const card = await db.collection('cards').findOne({ num: clean });
   if (!card) return res.status(404).json({ error: 'Card not found.' });
   if (card.expiry !== expiry) return res.status(400).json({ error: 'Expiration date does not match.' });
   if (card.pin !== pin) return res.status(400).json({ error: 'Incorrect PIN.' });
   if (card.status === 'active') return res.status(400).json({ error: 'This card is already active.' });
-  if (card.status === 'inactive') return res.status(403).json({ error: 'This card has been permanently deactivated. Contact support.' });
-  card.status = 'active';
-  save();
+  if (card.status === 'inactive') return res.status(403).json({ error: 'This card has been permanently deactivated.' });
+  await db.collection('cards').updateOne({ num: clean }, { $set: { status: 'active' } });
   res.json({ success: true });
 });
 
 // ADMIN ROUTES
-app.get('/api/admin/cards', (req, res) => {
-  const sorted = [...data.cards].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  res.json(sorted.map(c => ({ ...c, num: fmtNum(c.num) })));
+app.get('/api/admin/cards', async (req, res) => {
+  const cards = await db.collection('cards').find().sort({ created_at: -1 }).toArray();
+  res.json(cards.map(formatCard));
 });
 
-app.post('/api/admin/cards', (req, res) => {
+app.post('/api/admin/cards', async (req, res) => {
   const { num, holder, balance, expiry, pin, status } = req.body;
   if (!num || !expiry) return res.status(400).json({ error: 'Card number and expiry are required.' });
   const clean = num.replace(/\s/g, '');
-  if (data.cards.find(c => c.num === clean)) return res.status(409).json({ error: 'A card with that number already exists.' });
-  const card = { id: data.nextCardId++, num: clean, holder: holder || '', balance: balance || 0, expiry, pin: pin || '', status: status || 'pending', created_at: new Date().toISOString() };
-  data.cards.push(card);
-  save();
-  res.status(201).json({ ...card, num: fmtNum(card.num) });
+  const existing = await db.collection('cards').findOne({ num: clean });
+  if (existing) return res.status(409).json({ error: 'A card with that number already exists.' });
+  const result = await db.collection('cards').insertOne({ num: clean, holder: holder || '', balance: balance || 0, expiry, pin: pin || '', status: status || 'pending', created_at: new Date().toISOString() });
+  const card = await db.collection('cards').findOne({ _id: result.insertedId });
+  res.status(201).json(formatCard(card));
 });
 
-app.patch('/api/admin/cards/:id', (req, res) => {
-  const card = findCard(req.params.id);
-  if (!card) return res.status(404).json({ error: 'Card not found.' });
+app.patch('/api/admin/cards/:id', async (req, res) => {
   const { num, holder, balance, expiry, pin, status } = req.body;
+  const card = await db.collection('cards').findOne({ _id: new ObjectId(req.params.id) });
+  if (!card) return res.status(404).json({ error: 'Card not found.' });
   const clean = num ? num.replace(/\s/g, '') : card.num;
-  if (clean !== card.num && data.cards.find(c => c.num === clean)) return res.status(409).json({ error: 'A card with that number already exists.' });
-  Object.assign(card, { num: clean, holder: holder ?? card.holder, balance: balance ?? card.balance, expiry: expiry ?? card.expiry, pin: pin ?? card.pin, status: status ?? card.status });
-  save();
-  res.json({ ...card, num: fmtNum(card.num) });
+  if (clean !== card.num) {
+    const existing = await db.collection('cards').findOne({ num: clean });
+    if (existing) return res.status(409).json({ error: 'A card with that number already exists.' });
+  }
+  await db.collection('cards').updateOne({ _id: new ObjectId(req.params.id) }, { $set: { num: clean, holder: holder ?? card.holder, balance: balance ?? card.balance, expiry: expiry ?? card.expiry, pin: pin ?? card.pin, status: status ?? card.status } });
+  const updated = await db.collection('cards').findOne({ _id: new ObjectId(req.params.id) });
+  res.json(formatCard(updated));
 });
 
-app.delete('/api/admin/cards/:id', (req, res) => {
-  console.log('DELETE request for card id:', req.params.id);
-  const idx = data.cards.findIndex(c => c.id === parseInt(req.params.id));
-  if (idx === -1) return res.status(404).json({ error: 'Card not found.' });
-  data.cards.splice(idx, 1);
-  save();
+app.delete('/api/admin/cards/:id', async (req, res) => {
+  const result = await db.collection('cards').deleteOne({ _id: new ObjectId(req.params.id) });
+  if (result.deletedCount === 0) return res.status(404).json({ error: 'Card not found.' });
   res.json({ success: true });
 });
 
-app.patch('/api/admin/cards/:id/status', (req, res) => {
+app.patch('/api/admin/cards/:id/status', async (req, res) => {
   const { status } = req.body;
   if (!['active', 'inactive', 'pending'].includes(status)) return res.status(400).json({ error: 'Invalid status.' });
-  const card = findCard(req.params.id);
-  if (!card) return res.status(404).json({ error: 'Card not found.' });
-  card.status = status;
-  save();
+  const result = await db.collection('cards').updateOne({ _id: new ObjectId(req.params.id) }, { $set: { status } });
+  if (result.matchedCount === 0) return res.status(404).json({ error: 'Card not found.' });
   res.json({ success: true, status });
 });
+
+app.get('/health', (req, res) => res.send('OK'));
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`\n✅  Gift Card Server running at http://localhost:${PORT}`);
-  console.log(`   Admin login: admin / [your password]\n`);
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`\n✅  Gift Card Server running at http://localhost:${PORT}\n`);
+  });
+}).catch(err => {
+  console.error('Failed to connect to MongoDB:', err);
+  process.exit(1);
 });
