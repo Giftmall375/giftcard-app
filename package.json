@@ -9,8 +9,6 @@
   },
   "dependencies": {
     "cors": "^2.8.6",
-    "express": "^4.22.2",
-    "lowdb": "^7.0.1",
-    "sql.js": "^1.14.1"
+    "express": "^4.22.2"
   }
 }
