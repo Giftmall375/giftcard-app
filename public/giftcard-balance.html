@@ -107,7 +107,7 @@
         </div>
       </div>
       <div class="field">
-        <label for="pin">PIN (optional)</label>
+        <label for="pin">PIN</label>
         <div class="input-wrap">
           <input id="pin" type="text" placeholder="••••" maxlength="8" autocomplete="off" />
           <span class="input-icon">
@@ -183,6 +183,7 @@
       result.classList.remove('visible');
 
       if (!cardNumber) { showError('Enter a card number to check the balance.'); return; }
+      if (!pin) { showError('Please enter your PIN.'); return; }
 
       btn.disabled = true;
       spinner.style.display = 'block';
