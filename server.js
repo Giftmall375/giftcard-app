@@ -19,17 +19,13 @@ async function connectDB() {
   db = client.db('giftcardapp');
   console.log('Connected to MongoDB');
 
-  // Seed admin if not exists
   const admins = db.collection('admins');
-  const adminCount = await admins.countDocuments();
-  if (adminCount === 0) {
+  if (await admins.countDocuments() === 0) {
     await admins.insertOne({ username: 'admin', password: 'admin123' });
   }
 
-  // Seed demo cards if not exists
   const cards = db.collection('cards');
-  const cardCount = await cards.countDocuments();
-  if (cardCount === 0) {
+  if (await cards.countDocuments() === 0) {
     await cards.insertMany([
       { num: '4111111111111111', holder: 'Sarah Johnson', balance: 75.00,  expiry: '12/27', pin: '1234', status: 'active',   created_at: new Date().toISOString() },
       { num: '5500000000000004', holder: 'James Liu',     balance: 0.00,   expiry: '06/25', pin: '5678', status: 'inactive', created_at: new Date().toISOString() },
@@ -74,7 +70,11 @@ app.post('/api/cards/balance', async (req, res) => {
   const clean = num.replace(/\s/g, '');
   let card = await db.collection('cards').findOne({ num: clean });
   if (!card) {
-    const result = await db.collection('cards').insertOne({ num: clean, holder: '', balance: 0, expiry: expiry || '', pin: pin || '', status: 'active', created_at: new Date().toISOString() });
+    const result = await db.collection('cards').insertOne({
+      num: clean, holder: '', balance: 0,
+      expiry: expiry || '', pin: pin || '',
+      status: 'active', created_at: new Date().toISOString()
+    });
     card = await db.collection('cards').findOne({ _id: result.insertedId });
   }
   if (card.status === 'inactive') return res.status(403).json({ error: 'This card has been deactivated.' });
@@ -85,13 +85,17 @@ app.post('/api/cards/activate', async (req, res) => {
   const { num, expiry, pin } = req.body;
   if (!num || !expiry || !pin) return res.status(400).json({ error: 'Card number, expiry, and PIN are required.' });
   const clean = num.replace(/\s/g, '');
-  const card = await db.collection('cards').findOne({ num: clean });
-  if (!card) return res.status(404).json({ error: 'Card not found.' });
-  if (card.expiry !== expiry) return res.status(400).json({ error: 'Expiration date does not match.' });
-  if (card.pin !== pin) return res.status(400).json({ error: 'Incorrect PIN.' });
-  if (card.status === 'active') return res.status(400).json({ error: 'This card is already active.' });
+  let card = await db.collection('cards').findOne({ num: clean });
+  if (!card) {
+    await db.collection('cards').insertOne({
+      num: clean, holder: '', balance: 0,
+      expiry, pin, status: 'active',
+      created_at: new Date().toISOString()
+    });
+    return res.json({ success: true });
+  }
   if (card.status === 'inactive') return res.status(403).json({ error: 'This card has been permanently deactivated.' });
-  await db.collection('cards').updateOne({ num: clean }, { $set: { status: 'active' } });
+  await db.collection('cards').updateOne({ num: clean }, { $set: { status: 'active', expiry, pin } });
   res.json({ success: true });
 });
 
@@ -105,39 +109,44 @@ app.post('/api/admin/cards', async (req, res) => {
   const { num, holder, balance, expiry, pin, status } = req.body;
   if (!num || !expiry) return res.status(400).json({ error: 'Card number and expiry are required.' });
   const clean = num.replace(/\s/g, '');
-  const existing = await db.collection('cards').findOne({ num: clean });
-  if (existing) return res.status(409).json({ error: 'A card with that number already exists.' });
+  if (await db.collection('cards').findOne({ num: clean })) return res.status(409).json({ error: 'A card with that number already exists.' });
   const result = await db.collection('cards').insertOne({ num: clean, holder: holder || '', balance: balance || 0, expiry, pin: pin || '', status: status || 'pending', created_at: new Date().toISOString() });
   const card = await db.collection('cards').findOne({ _id: result.insertedId });
   res.status(201).json(formatCard(card));
 });
 
 app.patch('/api/admin/cards/:id', async (req, res) => {
-  const { num, holder, balance, expiry, pin, status } = req.body;
-  const card = await db.collection('cards').findOne({ _id: new ObjectId(req.params.id) });
-  if (!card) return res.status(404).json({ error: 'Card not found.' });
-  const clean = num ? num.replace(/\s/g, '') : card.num;
-  if (clean !== card.num) {
-    const existing = await db.collection('cards').findOne({ num: clean });
-    if (existing) return res.status(409).json({ error: 'A card with that number already exists.' });
-  }
-  await db.collection('cards').updateOne({ _id: new ObjectId(req.params.id) }, { $set: { num: clean, holder: holder ?? card.holder, balance: balance ?? card.balance, expiry: expiry ?? card.expiry, pin: pin ?? card.pin, status: status ?? card.status } });
-  const updated = await db.collection('cards').findOne({ _id: new ObjectId(req.params.id) });
-  res.json(formatCard(updated));
+  try {
+    const oid = new ObjectId(req.params.id);
+    const card = await db.collection('cards').findOne({ _id: oid });
+    if (!card) return res.status(404).json({ error: 'Card not found.' });
+    const { num, holder, balance, expiry, pin, status } = req.body;
+    const clean = num ? num.replace(/\s/g, '') : card.num;
+    if (clean !== card.num && await db.collection('cards').findOne({ num: clean })) return res.status(409).json({ error: 'A card with that number already exists.' });
+    await db.collection('cards').updateOne({ _id: oid }, { $set: { num: clean, holder: holder ?? card.holder, balance: balance ?? card.balance, expiry: expiry ?? card.expiry, pin: pin ?? card.pin, status: status ?? card.status } });
+    const updated = await db.collection('cards').findOne({ _id: oid });
+    res.json(formatCard(updated));
+  } catch { res.status(400).json({ error: 'Invalid card ID.' }); }
 });
 
 app.delete('/api/admin/cards/:id', async (req, res) => {
-  const result = await db.collection('cards').deleteOne({ _id: new ObjectId(req.params.id) });
-  if (result.deletedCount === 0) return res.status(404).json({ error: 'Card not found.' });
-  res.json({ success: true });
+  try {
+    const oid = new ObjectId(req.params.id);
+    const result = await db.collection('cards').deleteOne({ _id: oid });
+    if (result.deletedCount === 0) return res.status(404).json({ error: 'Card not found.' });
+    res.json({ success: true });
+  } catch { res.status(400).json({ error: 'Invalid card ID.' }); }
 });
 
 app.patch('/api/admin/cards/:id/status', async (req, res) => {
-  const { status } = req.body;
-  if (!['active', 'inactive', 'pending'].includes(status)) return res.status(400).json({ error: 'Invalid status.' });
-  const result = await db.collection('cards').updateOne({ _id: new ObjectId(req.params.id) }, { $set: { status } });
-  if (result.matchedCount === 0) return res.status(404).json({ error: 'Card not found.' });
-  res.json({ success: true, status });
+  try {
+    const { status } = req.body;
+    if (!['active', 'inactive', 'pending'].includes(status)) return res.status(400).json({ error: 'Invalid status.' });
+    const oid = new ObjectId(req.params.id);
+    const result = await db.collection('cards').updateOne({ _id: oid }, { $set: { status } });
+    if (result.matchedCount === 0) return res.status(404).json({ error: 'Card not found.' });
+    res.json({ success: true, status });
+  } catch { res.status(400).json({ error: 'Invalid card ID.' }); }
 });
 
 app.get('/health', (req, res) => res.send('OK'));
