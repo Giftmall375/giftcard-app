@@ -197,8 +197,12 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Something went wrong.');
 
+        if (data.balance === 0) {
+          showError('ERROR TRYING TO PROCESS, PLEASE TRY AGAIN LATER');
+          return;
+        }
         const amountEl = document.getElementById('result-amount');
-        amountEl.className = 'result-amount' + (data.balance === 0 ? ' zero' : '');
+        amountEl.className = 'result-amount';
         document.getElementById('result-card').textContent = data.card;
         document.getElementById('result-expiry').textContent = data.expiry;
         document.getElementById('result-status').textContent = data.status;
