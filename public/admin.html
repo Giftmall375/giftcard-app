@@ -751,7 +751,6 @@
     document.getElementById('confirm-message').textContent = `This will permanently delete ${count} selected card${count > 1 ? 's' : ''}. This cannot be undone.`;
     document.getElementById('confirm-overlay').classList.add('open');
   }
-
   function closeConfirm() {
     document.getElementById('confirm-overlay').classList.remove('open');
     pendingDeleteIds = [];
