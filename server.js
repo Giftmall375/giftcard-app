@@ -5,7 +5,7 @@ const { MongoClient, ObjectId } = require('mongodb');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://websolinfotechllc_db_user:Kevijavor@2025@cluster0.t4ra3tl.mongodb.net/?appName=Cluster0';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://websolinfotechllc_db_user:Kevijavor%402025@cluster0.t4ra3tl.mongodb.net/?appName=Cluster0';
 
 app.use(cors());
 app.use(express.json());
