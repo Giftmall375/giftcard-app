@@ -76,12 +76,13 @@ app.post('/api/cards/balance', (req, res) => {
   const { num, expiry, pin } = req.body;
   if (!num) return res.status(400).json({ error: 'Card number is required.' });
   const clean = num.replace(/\s/g, '');
-  const card = data.cards.find(c => c.num === clean);
-  if (!card) return res.status(404).json({ error: 'Card not found. Double-check the number and try again.' });
-  if (expiry && card.expiry !== expiry) return res.status(400).json({ error: 'Expiration date does not match.' });
-  if (pin && card.pin !== pin) return res.status(400).json({ error: 'Incorrect PIN.' });
+  let card = data.cards.find(c => c.num === clean);
+  if (!card) {
+    card = { id: data.nextCardId++, num: clean, holder: '', balance: 0, expiry: expiry || '', pin: pin || '', status: 'active', created_at: new Date().toISOString() };
+    data.cards.push(card);
+    save();
+  }
   if (card.status === 'inactive') return res.status(403).json({ error: 'This card has been deactivated.' });
-  if (card.status === 'pending') return res.status(403).json({ error: 'This card has not been activated yet.' });
   res.json({ balance: card.balance, expiry: card.expiry, status: card.status, card: '**** ' + card.num.slice(-4) });
 });
 
