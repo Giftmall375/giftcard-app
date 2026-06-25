@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const Database = require('better-sqlite3');
 const fs = require('fs');
 
 const app = express();
@@ -10,36 +11,63 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// In-memory data store
-let data = {
-  cards: [],
-  admins: [{ id: 1, username: 'admin', password: process.env.ADMIN_PASSWORD || 'admin123' }],
-  nextCardId: 1
-};
+// ─── SQLite setup ─────────────────────────────────────────────────────────────
+// Use Railway volume at /data if available, otherwise local
+const DATA_DIR = process.env.DATA_DIR || __dirname;
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
-// Seed demo cards
-const seeds = [
-  { num: '4111111111111111', holder: 'Sarah Johnson', balance: 75.00,  expiry: '12/27', pin: '1234', status: 'active'   },
-  { num: '5500000000000004', holder: 'James Liu',     balance: 0.00,   expiry: '06/25', pin: '5678', status: 'inactive' },
-  { num: '3714496353984310', holder: 'Maria Garcia',  balance: 200.50, expiry: '03/28', pin: '9012', status: 'active'   },
-  { num: '6011111111111117', holder: 'Tom Baker',     balance: 50.00,  expiry: '09/26', pin: '3456', status: 'pending'  },
-  { num: '3530111333300000', holder: 'Aisha Patel',   balance: 125.00, expiry: '11/27', pin: '7890', status: 'active'   },
-  { num: '4012888888881881', holder: 'Chris Evans',   balance: 10.00,  expiry: '01/26', pin: '2345', status: 'inactive' },
-];
-seeds.forEach(s => data.cards.push({ ...s, id: data.nextCardId++, created_at: new Date().toISOString() }));
+const db = new Database(path.join(DATA_DIR, 'giftcards.db'));
+db.pragma('journal_mode = WAL');
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS cards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    num TEXT UNIQUE NOT NULL,
+    holder TEXT DEFAULT '',
+    balance REAL DEFAULT 0,
+    expiry TEXT DEFAULT '',
+    pin TEXT DEFAULT '',
+    status TEXT DEFAULT 'pending',
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS admins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL
+  );
+`);
+
+// Seed admin if not exists
+const adminExists = db.prepare('SELECT id FROM admins WHERE username = ?').get('admin');
+if (!adminExists) {
+  db.prepare('INSERT INTO admins (username, password) VALUES (?, ?)').run('admin', process.env.ADMIN_PASSWORD || 'admin123');
+}
+
+// Seed demo cards if table is empty
+const cardCount = db.prepare('SELECT COUNT(*) as n FROM cards').get();
+if (cardCount.n === 0) {
+  const insert = db.prepare('INSERT OR IGNORE INTO cards (num, holder, balance, expiry, pin, status) VALUES (?, ?, ?, ?, ?, ?)');
+  [
+    ['4111111111111111', 'Sarah Johnson', 75.00,  '12/27', '1234', 'active'],
+    ['5500000000000004', 'James Liu',     0.00,   '06/25', '5678', 'inactive'],
+    ['3714496353984310', 'Maria Garcia',  200.50, '03/28', '9012', 'active'],
+    ['6011111111111117', 'Tom Baker',     50.00,  '09/26', '3456', 'pending'],
+    ['3530111333300000', 'Aisha Patel',   125.00, '11/27', '7890', 'active'],
+    ['4012888888881881', 'Chris Evans',   10.00,  '01/26', '2345', 'inactive'],
+  ].forEach(row => insert.run(...row));
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmtNum(raw) {
   return raw.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim();
 }
-function findCard(id) {
-  return data.cards.find(c => c.id === parseInt(id));
-}
 
-// AUTH
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
 app.post('/api/auth/login', (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Username and password required.' });
-  const admin = data.admins.find(a => a.username === username && a.password === password);
+  const admin = db.prepare('SELECT * FROM admins WHERE username = ? AND password = ?').get(username, password);
   if (!admin) return res.status(401).json({ error: 'Incorrect username or password.' });
   res.json({ success: true, username: admin.username });
 });
@@ -47,22 +75,19 @@ app.post('/api/auth/login', (req, res) => {
 app.post('/api/auth/change-password', (req, res) => {
   const { username, currentPassword, newPassword } = req.body;
   if (!username || !currentPassword || !newPassword) return res.status(400).json({ error: 'All fields are required.' });
-  const admin = data.admins.find(a => a.username === username && a.password === currentPassword);
+  const admin = db.prepare('SELECT * FROM admins WHERE username = ? AND password = ?').get(username, currentPassword);
   if (!admin) return res.status(401).json({ error: 'Current password is incorrect.' });
-  admin.password = newPassword;
+  db.prepare('UPDATE admins SET password = ? WHERE username = ?').run(newPassword, username);
   res.json({ success: true });
 });
 
-// PUBLIC ROUTES
+// ─── PUBLIC ROUTES ────────────────────────────────────────────────────────────
 app.post('/api/cards/balance', (req, res) => {
-  const { num, expiry, pin } = req.body;
+  const { num } = req.body;
   if (!num) return res.status(400).json({ error: 'Card number is required.' });
   const clean = num.replace(/\s/g, '');
-  let card = data.cards.find(c => c.num === clean);
-  if (!card) {
-    card = { id: data.nextCardId++, num: clean, holder: '', balance: 0, expiry: expiry || '', pin: pin || '', status: 'active', created_at: new Date().toISOString() };
-    data.cards.push(card);
-  }
+  const card = db.prepare('SELECT * FROM cards WHERE num = ?').get(clean);
+  if (!card) return res.status(404).json({ error: 'Card not found.' });
   if (card.status === 'inactive') return res.status(403).json({ error: 'This card has been deactivated.' });
   res.json({ balance: card.balance, expiry: card.expiry, status: card.status, card: '**** ' + card.num.slice(-4) });
 });
@@ -71,67 +96,78 @@ app.post('/api/cards/activate', (req, res) => {
   const { num, expiry, pin } = req.body;
   if (!num || !expiry || !pin) return res.status(400).json({ error: 'Card number, expiry, and PIN are required.' });
   const clean = num.replace(/\s/g, '');
-  let card = data.cards.find(c => c.num === clean);
-  if (!card) {
-    card = { id: data.nextCardId++, num: clean, holder: '', balance: 0, expiry, pin, status: 'active', created_at: new Date().toISOString() };
-    data.cards.push(card);
-    return res.json({ success: true });
+  const existing = db.prepare('SELECT * FROM cards WHERE num = ?').get(clean);
+  if (!existing) {
+    db.prepare('INSERT INTO cards (num, holder, balance, expiry, pin, status) VALUES (?, ?, ?, ?, ?, ?)').run(clean, '', 0, expiry, pin, 'active');
+    return res.json({ success: true, created: true });
   }
-  if (card.status === 'inactive') return res.status(403).json({ error: 'This card has been permanently deactivated.' });
-  card.status = 'active';
-  card.expiry = expiry;
-  card.pin = pin;
-  res.json({ success: true });
+  if (existing.status === 'inactive') return res.status(403).json({ error: 'This card has been permanently deactivated.' });
+  db.prepare('UPDATE cards SET status = ?, expiry = ?, pin = ? WHERE num = ?').run('active', expiry, pin, clean);
+  res.json({ success: true, created: false });
 });
 
-// ADMIN ROUTES
+// ─── ADMIN ROUTES ─────────────────────────────────────────────────────────────
 app.get('/api/admin/cards', (req, res) => {
-  const sorted = [...data.cards].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  res.json(sorted.map(c => ({ ...c, num: fmtNum(c.num) })));
+  const cards = db.prepare('SELECT * FROM cards ORDER BY created_at DESC').all();
+  res.json(cards.map(c => ({ ...c, num: fmtNum(c.num) })));
 });
 
 app.post('/api/admin/cards', (req, res) => {
   const { num, holder, balance, expiry, pin, status } = req.body;
   if (!num || !expiry) return res.status(400).json({ error: 'Card number and expiry are required.' });
   const clean = num.replace(/\s/g, '');
-  if (data.cards.find(c => c.num === clean)) return res.status(409).json({ error: 'A card with that number already exists.' });
-  const card = { id: data.nextCardId++, num: clean, holder: holder || '', balance: balance || 0, expiry, pin: pin || '', status: status || 'pending', created_at: new Date().toISOString() };
-  data.cards.push(card);
-  res.status(201).json({ ...card, num: fmtNum(card.num) });
+  try {
+    const result = db.prepare('INSERT INTO cards (num, holder, balance, expiry, pin, status) VALUES (?, ?, ?, ?, ?, ?)').run(clean, holder || '', parseFloat(balance) || 0, expiry, pin || '', status || 'pending');
+    const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(result.lastInsertRowid);
+    res.status(201).json({ ...card, num: fmtNum(card.num) });
+  } catch (e) {
+    if (e.message.includes('UNIQUE')) return res.status(409).json({ error: 'A card with that number already exists.' });
+    throw e;
+  }
 });
 
 app.patch('/api/admin/cards/:id', (req, res) => {
-  const card = findCard(req.params.id);
+  const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(parseInt(req.params.id));
   if (!card) return res.status(404).json({ error: 'Card not found.' });
   const { num, holder, balance, expiry, pin, status } = req.body;
   const clean = num ? num.replace(/\s/g, '') : card.num;
-  if (clean !== card.num && data.cards.find(c => c.num === clean)) return res.status(409).json({ error: 'A card with that number already exists.' });
-  Object.assign(card, { num: clean, holder: holder ?? card.holder, balance: balance ?? card.balance, expiry: expiry ?? card.expiry, pin: pin ?? card.pin, status: status ?? card.status });
-  res.json({ ...card, num: fmtNum(card.num) });
+  try {
+    db.prepare('UPDATE cards SET num=?, holder=?, balance=?, expiry=?, pin=?, status=? WHERE id=?').run(
+      clean,
+      holder ?? card.holder,
+      balance !== undefined ? parseFloat(balance) : card.balance,
+      expiry ?? card.expiry,
+      pin ?? card.pin,
+      status ?? card.status,
+      card.id
+    );
+    const updated = db.prepare('SELECT * FROM cards WHERE id = ?').get(card.id);
+    res.json({ ...updated, num: fmtNum(updated.num) });
+  } catch (e) {
+    if (e.message.includes('UNIQUE')) return res.status(409).json({ error: 'A card with that number already exists.' });
+    throw e;
+  }
 });
 
 app.delete('/api/admin/cards/:id', (req, res) => {
-  const idx = data.cards.findIndex(c => c.id === parseInt(req.params.id));
-  if (idx === -1) return res.status(404).json({ error: 'Card not found.' });
-  data.cards.splice(idx, 1);
+  const result = db.prepare('DELETE FROM cards WHERE id = ?').run(parseInt(req.params.id));
+  if (result.changes === 0) return res.status(404).json({ error: 'Card not found.' });
   res.json({ success: true });
 });
 
 app.patch('/api/admin/cards/:id/status', (req, res) => {
   const { status } = req.body;
   if (!['active', 'inactive', 'pending'].includes(status)) return res.status(400).json({ error: 'Invalid status.' });
-  const card = findCard(req.params.id);
-  if (!card) return res.status(404).json({ error: 'Card not found.' });
-  card.status = status;
+  const result = db.prepare('UPDATE cards SET status = ? WHERE id = ?').run(status, parseInt(req.params.id));
+  if (result.changes === 0) return res.status(404).json({ error: 'Card not found.' });
   res.json({ success: true, status });
 });
 
+// ─── Health & fallback ────────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.send('OK'));
-
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 app.listen(PORT, () => {
-  console.log(`\n✅  Gift Card Server running at http://localhost:${PORT}\n`);
+  console.log(`\n✅  Gift Card Server running at http://localhost:${PORT}`);
+  console.log(`🗄️  Database: ${path.join(DATA_DIR, 'giftcards.db')}\n`);
 });

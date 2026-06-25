@@ -337,7 +337,9 @@
 <div id="toast"></div>
 
 <script>
-  // AUTH
+  // AUTH — session persisted in localStorage so refresh doesn't log you out
+  const SESSION_KEY = 'gc_admin_session';
+
   async function doLogin() {
     const u = document.getElementById('login-user').value.trim();
     const p = document.getElementById('login-pass').value;
@@ -345,20 +347,41 @@
       const res = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:u,password:p}) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('dashboard').style.display = 'block';
-      await loadCards();
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ username: data.username, password: p }));
+      showDashboard();
     } catch(err) {
       document.getElementById('login-error').textContent = err.message;
       document.getElementById('login-error').classList.add('visible');
     }
   }
+
   function doLogout() {
+    localStorage.removeItem(SESSION_KEY);
     document.getElementById('dashboard').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('login-pass').value = '';
     document.getElementById('login-error').classList.remove('visible');
   }
+
+  function showDashboard() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadCards();
+  }
+
+  // On page load — restore session if still valid
+  (async function restoreSession() {
+    const saved = localStorage.getItem(SESSION_KEY);
+    if (!saved) return;
+    try {
+      const { username, password } = JSON.parse(saved);
+      const res = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username,password}) });
+      if (res.ok) { showDashboard(); return; }
+    } catch {}
+    // Session invalid — clear it and show login
+    localStorage.removeItem(SESSION_KEY);
+  })();
+
   document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 
   // DATA
