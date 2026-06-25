@@ -170,5 +170,5 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`\n✅  Gift Card Server running at http://localhost:${PORT}`);
-  console.log(`   Admin login: admin / admin123\n`);
+  console.log(`   Admin login: admin / Itsme@2020\n`);
 });
