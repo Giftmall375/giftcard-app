@@ -5,7 +5,15 @@ const { MongoClient, ObjectId } = require('mongodb');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://websolinfotechllc_db_user:Kevijavor%402025@cluster0.t4ra3tl.mongodb.net/?appName=Cluster0';
+const DEFAULT_MONGO_URI = 'mongodb+srv://websolinfotechllc_db_user:Kevijavor%402025@cluster0.t4ra3tl.mongodb.net/?appName=Cluster0';
+const envMongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+const envMongoUser = process.env.MONGO_USER;
+const envMongoPass = process.env.MONGO_PASSWORD;
+const envMongoHost = process.env.MONGO_HOST;
+
+const MONGO_URI = envMongoUri || (envMongoUser && envMongoPass && envMongoHost
+  ? `mongodb+srv://${encodeURIComponent(envMongoUser)}:${encodeURIComponent(envMongoPass)}@${envMongoHost}/?appName=Cluster0`
+  : DEFAULT_MONGO_URI);
 
 app.use(cors());
 app.use(express.json());
