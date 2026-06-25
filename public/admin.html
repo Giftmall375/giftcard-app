@@ -7,336 +7,149 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --navy:     #0F1B35;
-      --navy2:    #162040;
-      --card-bg:  #192545;
-      --card-bg2: #1e2e52;
-      --border:   rgba(255,255,255,0.07);
-      --gold:     #D4A843;
-      --white:    #F8F6F0;
-      --steel:    #8A95A3;
-      --green:    #2ECC8A;
-      --red:      #E05C5C;
-      --amber:    #F59E0B;
-      --sidebar:  180px;
+      --navy:#0F1B35; --navy2:#162040; --card-bg:#192545; --card-bg2:#1e2e52;
+      --border:rgba(255,255,255,0.07); --gold:#D4A843; --white:#F8F6F0;
+      --steel:#8A95A3; --green:#2ECC8A; --red:#E05C5C; --amber:#F59E0B;
     }
+    html,body { min-height:100vh; background:var(--navy); color:var(--white); font-family:'Inter',sans-serif; font-size:14px; }
 
-    html, body {
-      min-height: 100vh;
-      background: var(--navy);
-      color: var(--white);
-      font-family: 'Inter', sans-serif;
-      font-size: 14px;
-    }
+    /* LOGIN */
+    #login-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px 16px; }
+    .login-box { background:var(--card-bg); border:1px solid var(--border); border-radius:20px; padding:40px 36px; width:100%; max-width:380px; box-shadow:0 8px 40px rgba(0,0,0,0.45); }
+    .login-box .lock-icon { width:52px; height:52px; background:rgba(212,168,67,0.1); border-radius:14px; display:flex; align-items:center; justify-content:center; margin-bottom:20px; color:var(--gold); }
+    .login-box h1 { font-family:'DM Serif Display',serif; font-size:26px; margin-bottom:6px; }
+    .login-box p { color:var(--steel); font-size:13px; margin-bottom:28px; }
+    .login-field { margin-bottom:14px; }
+    .login-field label { display:block; font-size:11px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:var(--steel); margin-bottom:7px; }
+    .login-field input { width:100%; background:var(--navy); border:1.5px solid rgba(255,255,255,0.1); border-radius:9px; color:var(--white); font-family:'Inter',sans-serif; font-size:14px; padding:12px 14px; outline:none; transition:border-color 0.2s; }
+    .login-field input:focus { border-color:var(--gold); }
+    .login-field input::placeholder { color:rgba(138,149,163,0.45); }
+    .login-btn { width:100%; margin-top:6px; background:var(--gold); color:var(--navy); border:none; border-radius:9px; font-family:'Inter',sans-serif; font-size:14px; font-weight:700; padding:13px; cursor:pointer; transition:background 0.18s; }
+    .login-btn:hover { background:#e6b94c; }
+    .login-error { display:none; margin-top:12px; background:rgba(224,92,92,0.1); border:1px solid rgba(224,92,92,0.3); border-radius:7px; padding:10px 12px; font-size:12px; color:var(--red); text-align:center; }
+    .login-error.visible { display:block; }
 
-    #login-screen {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px 16px;
-    }
+    /* DASHBOARD */
+    #dashboard { display:none; min-height:100vh; }
+    .topbar { position:fixed; top:0; left:0; right:0; height:56px; background:var(--card-bg); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 24px; z-index:100; }
+    .topbar-left { display:flex; align-items:center; gap:10px; }
+    .topbar-left .brand { font-family:'DM Serif Display',serif; font-size:17px; color:var(--white); }
+    .topbar-left .badge { background:rgba(212,168,67,0.15); color:var(--gold); font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; padding:3px 8px; border-radius:4px; }
+    .topbar-right { display:flex; align-items:center; gap:14px; }
+    .topbar-right .admin-name { font-size:13px; color:var(--steel); }
+    .chgpw-btn { background:rgba(212,168,67,0.1); color:var(--gold); border:1px solid rgba(212,168,67,0.2); border-radius:7px; font-family:'Inter',sans-serif; font-size:12px; font-weight:600; padding:6px 12px; cursor:pointer; transition:background 0.18s; }
+    .chgpw-btn:hover { background:rgba(212,168,67,0.2); }
+    .logout-btn { background:rgba(224,92,92,0.1); color:var(--red); border:1px solid rgba(224,92,92,0.2); border-radius:7px; font-family:'Inter',sans-serif; font-size:12px; font-weight:600; padding:6px 12px; cursor:pointer; transition:background 0.18s; }
+    .logout-btn:hover { background:rgba(224,92,92,0.18); }
 
-    .login-box {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 40px 36px;
-      width: 100%;
-      max-width: 380px;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.45);
-    }
+    .main { margin-top:56px; padding:32px 28px; max-width:1100px; margin-left:auto; margin-right:auto; }
+    .page-header { display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:16px; margin-bottom:28px; }
+    .page-header h2 { font-family:'DM Serif Display',serif; font-size:28px; }
+    .page-header p { color:var(--steel); font-size:13px; margin-top:4px; }
+    .page-header-btns { display:flex; gap:10px; flex-wrap:wrap; }
 
-    .login-box .lock-icon {
-      width: 52px; height: 52px;
-      background: rgba(212,168,67,0.1);
-      border-radius: 14px;
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 20px;
-      color: var(--gold);
-    }
+    .add-btn { display:inline-flex; align-items:center; gap:7px; background:var(--gold); color:var(--navy); border:none; border-radius:9px; font-family:'Inter',sans-serif; font-size:13px; font-weight:700; padding:10px 18px; cursor:pointer; transition:background 0.18s; white-space:nowrap; }
+    .add-btn:hover { background:#e6b94c; }
+    .export-btn { display:inline-flex; align-items:center; gap:7px; background:rgba(46,204,138,0.12); color:var(--green); border:1px solid rgba(46,204,138,0.25); border-radius:9px; font-family:'Inter',sans-serif; font-size:13px; font-weight:700; padding:10px 18px; cursor:pointer; white-space:nowrap; }
+    .export-btn:hover { background:rgba(46,204,138,0.2); }
 
-    .login-box h1 { font-family: 'DM Serif Display', serif; font-size: 26px; margin-bottom: 6px; }
-    .login-box p { color: var(--steel); font-size: 13px; margin-bottom: 28px; }
+    .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:28px; }
+    @media(max-width:700px){ .stats{grid-template-columns:1fr 1fr;} }
+    @media(max-width:420px){ .stats{grid-template-columns:1fr;} .main{padding:24px 16px;} }
+    .stat-card { background:var(--card-bg); border:1px solid var(--border); border-radius:14px; padding:18px 20px; }
+    .stat-card .stat-label { font-size:11px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:var(--steel); margin-bottom:8px; }
+    .stat-card .stat-val { font-family:'DM Serif Display',serif; font-size:28px; line-height:1; }
+    .stat-card .stat-val.green { color:var(--green); }
+    .stat-card .stat-val.red { color:var(--red); }
+    .stat-card .stat-val.gold { color:var(--gold); }
 
-    .login-field { margin-bottom: 14px; }
-    .login-field label {
-      display: block; font-size: 11px; font-weight: 600;
-      letter-spacing: 0.07em; text-transform: uppercase;
-      color: var(--steel); margin-bottom: 7px;
-    }
-    .login-field input {
-      width: 100%; background: var(--navy);
-      border: 1.5px solid rgba(255,255,255,0.1);
-      border-radius: 9px; color: var(--white);
-      font-family: 'Inter', sans-serif; font-size: 14px;
-      padding: 12px 14px; outline: none; transition: border-color 0.2s;
-    }
-    .login-field input:focus { border-color: var(--gold); }
-    .login-field input::placeholder { color: rgba(138,149,163,0.45); }
+    .toolbar { display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+    .search-wrap { position:relative; flex:1; min-width:200px; }
+    .search-wrap input { width:100%; background:var(--card-bg); border:1.5px solid var(--border); border-radius:9px; color:var(--white); font-family:'Inter',sans-serif; font-size:13px; padding:10px 14px 10px 36px; outline:none; transition:border-color 0.2s; }
+    .search-wrap input:focus { border-color:var(--gold); }
+    .search-wrap input::placeholder { color:rgba(138,149,163,0.45); }
+    .search-wrap .search-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--steel); pointer-events:none; }
+    .filter-select { background:var(--card-bg); border:1.5px solid var(--border); border-radius:9px; color:var(--white); font-family:'Inter',sans-serif; font-size:13px; padding:10px 14px; outline:none; cursor:pointer; }
+    option { background:#192545; }
 
-    .login-btn {
-      width: 100%; margin-top: 6px; background: var(--gold);
-      color: var(--navy); border: none; border-radius: 9px;
-      font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700;
-      padding: 13px; cursor: pointer; transition: background 0.18s;
-    }
-    .login-btn:hover { background: #e6b94c; }
+    .bulk-bar { display:none; align-items:center; gap:12px; background:rgba(224,92,92,0.08); border:1px solid rgba(224,92,92,0.2); border-radius:9px; padding:10px 16px; margin-bottom:12px; }
+    .bulk-bar.visible { display:flex; }
+    .bulk-bar span { font-size:13px; color:var(--red); font-weight:600; flex:1; }
+    .bulk-delete-btn { background:var(--red); color:#fff; border:none; border-radius:7px; font-family:'Inter',sans-serif; font-size:12px; font-weight:700; padding:7px 14px; cursor:pointer; }
+    .bulk-cancel-btn { background:rgba(255,255,255,0.06); color:var(--steel); border:none; border-radius:7px; font-family:'Inter',sans-serif; font-size:12px; font-weight:600; padding:7px 14px; cursor:pointer; }
 
-    .login-error {
-      display: none; margin-top: 12px;
-      background: rgba(224,92,92,0.1); border: 1px solid rgba(224,92,92,0.3);
-      border-radius: 7px; padding: 10px 12px; font-size: 12px;
-      color: var(--red); text-align: center;
-    }
-    .login-error.visible { display: block; }
+    .table-wrap { background:var(--card-bg); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+    table { width:100%; border-collapse:collapse; }
+    thead th { background:var(--card-bg2); padding:12px 16px; text-align:left; font-size:11px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:var(--steel); white-space:nowrap; border-bottom:1px solid var(--border); }
+    tbody tr { border-bottom:1px solid var(--border); transition:background 0.15s; }
+    tbody tr:last-child { border-bottom:none; }
+    tbody tr:hover { background:rgba(255,255,255,0.03); }
+    tbody tr.selected { background:rgba(224,92,92,0.05); }
+    td { padding:14px 16px; vertical-align:middle; font-size:13px; }
+    .row-check,.select-all-check { width:16px; height:16px; cursor:pointer; accent-color:var(--red); }
+    .card-num { font-weight:600; letter-spacing:0.04em; font-size:13px; }
+    .card-num span { color:var(--steel); font-weight:400; }
+    .balance-cell { font-weight:700; color:var(--white); }
+    .balance-cell.zero { color:var(--steel); }
+    .pill { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; font-size:11px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; white-space:nowrap; }
+    .pill.active { background:rgba(46,204,138,0.12); color:var(--green); }
+    .pill.inactive { background:rgba(224,92,92,0.12); color:var(--red); }
+    .pill.pending { background:rgba(245,158,11,0.12); color:var(--amber); }
+    .pill::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
+    .actions { display:flex; gap:6px; flex-wrap:wrap; }
+    .action-btn { padding:6px 12px; border-radius:7px; font-family:'Inter',sans-serif; font-size:12px; font-weight:600; cursor:pointer; border:1px solid transparent; transition:background 0.15s; white-space:nowrap; }
+    .action-btn.edit { background:rgba(212,168,67,0.1); color:var(--gold); border-color:rgba(212,168,67,0.2); }
+    .action-btn.edit:hover { background:rgba(212,168,67,0.2); }
+    .action-btn.activate { background:rgba(46,204,138,0.1); color:var(--green); border-color:rgba(46,204,138,0.2); }
+    .action-btn.activate:hover { background:rgba(46,204,138,0.2); }
+    .action-btn.deactivate { background:rgba(224,92,92,0.1); color:var(--red); border-color:rgba(224,92,92,0.2); }
+    .action-btn.deactivate:hover { background:rgba(224,92,92,0.2); }
+    .action-btn.delete { background:rgba(224,92,92,0.1); color:var(--red); border-color:rgba(224,92,92,0.2); }
+    .action-btn.delete:hover { background:rgba(224,92,92,0.25); }
+    .empty-state { text-align:center; padding:56px 24px; color:var(--steel); }
+    .empty-state svg { margin-bottom:14px; opacity:0.4; }
 
-    #dashboard { display: none; min-height: 100vh; }
+    /* MODALS */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(5,10,22,0.75); backdrop-filter:blur(4px); z-index:200; align-items:center; justify-content:center; padding:24px 16px; }
+    .modal-overlay.open { display:flex; animation:fadeIn 0.2s ease; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    .modal { background:var(--card-bg); border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:32px 28px; width:100%; max-width:480px; box-shadow:0 20px 60px rgba(0,0,0,0.6); animation:slideUp 0.22s ease; }
+    @keyframes slideUp { from{transform:translateY(16px);opacity:0} to{transform:translateY(0);opacity:1} }
+    .modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
+    .modal-header h3 { font-family:'DM Serif Display',serif; font-size:22px; }
+    .modal-close { background:none; border:none; color:var(--steel); cursor:pointer; padding:4px; border-radius:6px; transition:color 0.15s; line-height:0; }
+    .modal-close:hover { color:var(--white); }
+    .modal-field { margin-bottom:16px; }
+    .modal-field label { display:block; font-size:11px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:var(--steel); margin-bottom:7px; }
+    .modal-field input,.modal-field select { width:100%; background:var(--navy); border:1.5px solid rgba(255,255,255,0.1); border-radius:9px; color:var(--white); font-family:'Inter',sans-serif; font-size:14px; padding:12px 14px; outline:none; transition:border-color 0.2s; }
+    .modal-field input:focus,.modal-field select:focus { border-color:var(--gold); }
+    .modal-field select option { background:#192545; }
+    .modal-two-col { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .modal-actions { display:flex; gap:10px; margin-top:24px; }
+    .modal-actions button { flex:1; padding:13px; border-radius:9px; font-family:'Inter',sans-serif; font-size:13px; font-weight:700; cursor:pointer; transition:background 0.18s; border:none; }
+    .modal-actions .save-btn { background:var(--gold); color:var(--navy); }
+    .modal-actions .save-btn:hover { background:#e6b94c; }
+    .modal-actions .cancel-btn { background:rgba(255,255,255,0.06); color:var(--steel); }
+    .modal-actions .cancel-btn:hover { background:rgba(255,255,255,0.1); color:var(--white); }
+    .confirm-modal { max-width:380px; text-align:center; }
+    .confirm-icon { font-size:40px; margin-bottom:12px; }
+    .confirm-modal p { color:var(--steel); font-size:14px; margin-top:8px; margin-bottom:24px; }
+    .delete-confirm-btn { background:var(--red) !important; color:#fff !important; }
+    .delete-confirm-btn:hover { background:#c94c4c !important; }
 
-    .topbar {
-      position: fixed; top: 0; left: 0; right: 0; height: 56px;
-      background: var(--card-bg); border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 24px; z-index: 100;
-    }
-
-    .topbar-left { display: flex; align-items: center; gap: 10px; }
-    .topbar-left .brand { font-family: 'DM Serif Display', serif; font-size: 17px; color: var(--white); }
-    .topbar-left .badge {
-      background: rgba(212,168,67,0.15); color: var(--gold);
-      font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
-      text-transform: uppercase; padding: 3px 8px; border-radius: 4px;
-    }
-
-    .topbar-right { display: flex; align-items: center; gap: 14px; }
-    .topbar-right .admin-name { font-size: 13px; color: var(--steel); }
-    .chgpw-btn {
-      background: rgba(212,168,67,0.1); color: var(--gold);
-      border: 1px solid rgba(212,168,67,0.2); border-radius: 7px;
-      font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
-      padding: 6px 12px; cursor: pointer; transition: background 0.18s;
-    }
-    .chgpw-btn:hover { background: rgba(212,168,67,0.2); }
-    .logout-btn {
-      background: rgba(224,92,92,0.1); color: var(--red);
-      border: 1px solid rgba(224,92,92,0.2); border-radius: 7px;
-      font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
-      padding: 6px 12px; cursor: pointer; transition: background 0.18s;
-    }
-    .logout-btn:hover { background: rgba(224,92,92,0.18); }
-
-    .main {
-      margin-top: 56px; padding: 32px 28px;
-      max-width: 1100px; margin-left: auto; margin-right: auto;
-    }
-
-    .page-header {
-      display: flex; align-items: flex-end; justify-content: space-between;
-      flex-wrap: wrap; gap: 16px; margin-bottom: 28px;
-    }
-    .page-header h2 { font-family: 'DM Serif Display', serif; font-size: 28px; }
-    .page-header p { color: var(--steel); font-size: 13px; margin-top: 4px; }
-
-    .add-btn {
-      display: inline-flex; align-items: center; gap: 7px;
-      background: var(--gold); color: var(--navy); border: none;
-      border-radius: 9px; font-family: 'Inter', sans-serif;
-      font-size: 13px; font-weight: 700; padding: 10px 18px;
-      cursor: pointer; transition: background 0.18s; white-space: nowrap;
-    }
-    .add-btn:hover { background: #e6b94c; }
-
-    .stats {
-      display: grid; grid-template-columns: repeat(4, 1fr);
-      gap: 14px; margin-bottom: 28px;
-    }
-    @media (max-width: 700px) { .stats { grid-template-columns: 1fr 1fr; } }
-    @media (max-width: 420px) { .stats { grid-template-columns: 1fr; } .main { padding: 24px 16px; } }
-
-    .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
-    .stat-card .stat-label { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--steel); margin-bottom: 8px; }
-    .stat-card .stat-val { font-family: 'DM Serif Display', serif; font-size: 28px; line-height: 1; }
-    .stat-card .stat-val.green { color: var(--green); }
-    .stat-card .stat-val.red   { color: var(--red); }
-    .stat-card .stat-val.gold  { color: var(--gold); }
-
-    .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-
-    .search-wrap { position: relative; flex: 1; min-width: 200px; }
-    .search-wrap input {
-      width: 100%; background: var(--card-bg); border: 1.5px solid var(--border);
-      border-radius: 9px; color: var(--white); font-family: 'Inter', sans-serif;
-      font-size: 13px; padding: 10px 14px 10px 36px; outline: none; transition: border-color 0.2s;
-    }
-    .search-wrap input:focus { border-color: var(--gold); }
-    .search-wrap input::placeholder { color: rgba(138,149,163,0.45); }
-    .search-wrap .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--steel); pointer-events: none; }
-
-    .filter-select {
-      background: var(--card-bg); border: 1.5px solid var(--border);
-      border-radius: 9px; color: var(--white); font-family: 'Inter', sans-serif;
-      font-size: 13px; padding: 10px 14px; outline: none; cursor: pointer; transition: border-color 0.2s;
-    }
-    .filter-select:focus { border-color: var(--gold); }
-    option { background: #192545; }
-
-    /* Bulk delete bar */
-    .bulk-bar {
-      display: none;
-      align-items: center;
-      gap: 12px;
-      background: rgba(224,92,92,0.08);
-      border: 1px solid rgba(224,92,92,0.2);
-      border-radius: 9px;
-      padding: 10px 16px;
-      margin-bottom: 12px;
-    }
-    .bulk-bar.visible { display: flex; }
-    .bulk-bar span { font-size: 13px; color: var(--red); font-weight: 600; flex: 1; }
-    .bulk-delete-btn {
-      background: var(--red); color: #fff; border: none;
-      border-radius: 7px; font-family: 'Inter', sans-serif;
-      font-size: 12px; font-weight: 700; padding: 7px 14px;
-      cursor: pointer; transition: background 0.15s;
-    }
-    .bulk-delete-btn:hover { background: #c94c4c; }
-    .bulk-cancel-btn {
-      background: rgba(255,255,255,0.06); color: var(--steel); border: none;
-      border-radius: 7px; font-family: 'Inter', sans-serif;
-      font-size: 12px; font-weight: 600; padding: 7px 14px;
-      cursor: pointer; transition: background 0.15s;
-    }
-    .bulk-cancel-btn:hover { background: rgba(255,255,255,0.1); color: var(--white); }
-
-    .table-wrap { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
-
-    table { width: 100%; border-collapse: collapse; }
-
-    thead th {
-      background: var(--card-bg2); padding: 12px 16px; text-align: left;
-      font-size: 11px; font-weight: 600; letter-spacing: 0.07em;
-      text-transform: uppercase; color: var(--steel); white-space: nowrap;
-      border-bottom: 1px solid var(--border);
-    }
-
-    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
-    tbody tr:last-child { border-bottom: none; }
-    tbody tr:hover { background: rgba(255,255,255,0.03); }
-    tbody tr.selected { background: rgba(224,92,92,0.05); }
-
-    td { padding: 14px 16px; vertical-align: middle; font-size: 13px; }
-
-    /* Checkbox styling */
-    .row-check, .select-all-check {
-      width: 16px; height: 16px; cursor: pointer; accent-color: var(--red);
-    }
-
-    .card-num { font-weight: 600; letter-spacing: 0.04em; font-size: 13px; }
-    .card-num span { color: var(--steel); font-weight: 400; }
-
-    .balance-cell { font-weight: 700; color: var(--white); }
-    .balance-cell.zero { color: var(--steel); }
-
-    .pill {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 4px 10px; border-radius: 999px; font-size: 11px;
-      font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap;
-    }
-    .pill.active   { background: rgba(46,204,138,0.12);  color: var(--green); }
-    .pill.inactive { background: rgba(224,92,92,0.12);   color: var(--red);   }
-    .pill.pending  { background: rgba(245,158,11,0.12);  color: var(--amber); }
-    .pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-
-    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
-
-    .action-btn {
-      padding: 6px 12px; border-radius: 7px; font-family: 'Inter', sans-serif;
-      font-size: 12px; font-weight: 600; cursor: pointer;
-      border: 1px solid transparent; transition: background 0.15s, border-color 0.15s; white-space: nowrap;
-    }
-    .action-btn.edit { background: rgba(212,168,67,0.1); color: var(--gold); border-color: rgba(212,168,67,0.2); }
-    .action-btn.edit:hover { background: rgba(212,168,67,0.2); }
-    .action-btn.activate { background: rgba(46,204,138,0.1); color: var(--green); border-color: rgba(46,204,138,0.2); }
-    .action-btn.activate:hover { background: rgba(46,204,138,0.2); }
-    .action-btn.deactivate { background: rgba(224,92,92,0.1); color: var(--red); border-color: rgba(224,92,92,0.2); }
-    .action-btn.deactivate:hover { background: rgba(224,92,92,0.2); }
-    .action-btn.delete { background: rgba(224,92,92,0.1); color: var(--red); border-color: rgba(224,92,92,0.2); }
-    .action-btn.delete:hover { background: rgba(224,92,92,0.25); }
-
-    .empty-state { text-align: center; padding: 56px 24px; color: var(--steel); }
-    .empty-state svg { margin-bottom: 14px; opacity: 0.4; }
-    .empty-state p { font-size: 14px; }
-
-    .modal-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(5,10,22,0.75); backdrop-filter: blur(4px);
-      z-index: 200; align-items: center; justify-content: center; padding: 24px 16px;
-    }
-    .modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-    .modal {
-      background: var(--card-bg); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 20px; padding: 32px 28px; width: 100%; max-width: 480px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.6); animation: slideUp 0.22s ease;
-    }
-    @keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
-    .modal-header h3 { font-family: 'DM Serif Display', serif; font-size: 22px; }
-    .modal-close { background: none; border: none; color: var(--steel); cursor: pointer; padding: 4px; border-radius: 6px; transition: color 0.15s; line-height: 0; }
-    .modal-close:hover { color: var(--white); }
-
-    .modal-field { margin-bottom: 16px; }
-    .modal-field label { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--steel); margin-bottom: 7px; }
-    .modal-field input, .modal-field select {
-      width: 100%; background: var(--navy); border: 1.5px solid rgba(255,255,255,0.1);
-      border-radius: 9px; color: var(--white); font-family: 'Inter', sans-serif;
-      font-size: 14px; padding: 12px 14px; outline: none; transition: border-color 0.2s;
-    }
-    .modal-field input:focus, .modal-field select:focus { border-color: var(--gold); }
-    .modal-field select option { background: #192545; }
-
-    .modal-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-    .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
-    .modal-actions button { flex: 1; padding: 13px; border-radius: 9px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: background 0.18s; border: none; }
-    .modal-actions .save-btn { background: var(--gold); color: var(--navy); }
-    .modal-actions .save-btn:hover { background: #e6b94c; }
-    .modal-actions .cancel-btn { background: rgba(255,255,255,0.06); color: var(--steel); }
-    .modal-actions .cancel-btn:hover { background: rgba(255,255,255,0.1); color: var(--white); }
-
-    /* Confirm delete modal */
-    .confirm-modal { max-width: 380px; text-align: center; }
-    .confirm-modal .confirm-icon { font-size: 40px; margin-bottom: 12px; }
-    .confirm-modal p { color: var(--steel); font-size: 14px; margin-top: 8px; margin-bottom: 24px; }
-    .confirm-modal .delete-confirm-btn { background: var(--red); color: #fff; }
-    .confirm-modal .delete-confirm-btn:hover { background: #c94c4c; }
-
-    #toast {
-      position: fixed; bottom: 28px; left: 50%;
-      transform: translateX(-50%) translateY(80px);
-      background: var(--card-bg2); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px; padding: 12px 20px; font-size: 13px; font-weight: 500;
-      display: flex; align-items: center; gap: 8px; z-index: 300;
-      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
-      opacity: 0; white-space: nowrap;
-    }
-    #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-    #toast.success { border-color: rgba(46,204,138,0.3); color: var(--green); }
-    #toast.error   { border-color: rgba(224,92,92,0.3);  color: var(--red);   }
-
-    @media (max-width: 680px) { .hide-sm { display: none; } .topbar { padding: 0 16px; } }
+    #toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--card-bg2); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:12px 20px; font-size:13px; font-weight:500; display:flex; align-items:center; gap:8px; z-index:300; transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s; opacity:0; white-space:nowrap; }
+    #toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+    #toast.success { border-color:rgba(46,204,138,0.3); color:var(--green); }
+    #toast.error { border-color:rgba(224,92,92,0.3); color:var(--red); }
+    @media(max-width:680px){ .hide-sm{display:none;} .topbar{padding:0 16px;} }
   </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
-<!-- LOGIN -->
 <div id="login-screen">
   <div class="login-box">
     <div class="lock-icon">
@@ -362,7 +175,6 @@
   </div>
 </div>
 
-<!-- DASHBOARD -->
 <div id="dashboard">
   <div class="topbar">
     <div class="topbar-left">
@@ -387,16 +199,16 @@
         <h2>Gift Card Management</h2>
         <p>View, edit, activate and deactivate gift cards.</p>
       </div>
-      <button class="export-btn" onclick="exportToExcel()" style="display:inline-flex;align-items:center;gap:7px;background:rgba(46,204,138,0.12);color:#2ECC8A;border:1px solid rgba(46,204,138,0.25);border-radius:9px;font-family:Inter,sans-serif;font-size:13px;font-weight:700;padding:10px 18px;cursor:pointer;white-space:nowrap;margin-right:8px;">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v8M4 6l3 3 3-3M2 10v2a1 1 0 001 1h8a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Export Excel
-      </button>
-      <button class="add-btn" onclick="openAddModal()">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        Add Card
-      </button>
+      <div class="page-header-btns">
+        <button class="export-btn" onclick="exportToExcel()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v8M4 6l3 3 3-3M2 10v2a1 1 0 001 1h8a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Export Excel
+        </button>
+        <button class="add-btn" onclick="openAddModal()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Add Card
+        </button>
+      </div>
     </div>
 
     <div class="stats">
@@ -424,7 +236,6 @@
       </select>
     </div>
 
-    <!-- Bulk delete bar -->
     <div class="bulk-bar" id="bulk-bar">
       <span id="bulk-count-label">0 cards selected</span>
       <button class="bulk-cancel-btn" onclick="clearSelection()">Cancel</button>
@@ -435,7 +246,7 @@
       <table>
         <thead>
           <tr>
-            <th><input type="checkbox" class="select-all-check" id="select-all" onchange="toggleSelectAll(this)" title="Select all" /></th>
+            <th><input type="checkbox" class="select-all-check" id="select-all" onchange="toggleSelectAll(this)" /></th>
             <th>Card Number</th>
             <th class="hide-sm">Holder</th>
             <th>Balance</th>
@@ -459,38 +270,21 @@
 </div>
 
 <!-- EDIT/ADD MODAL -->
-<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <div class="modal-header">
       <h3 id="modal-title">Edit Card</h3>
       <button class="modal-close" onclick="closeModal()">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <path d="M4 4l10 10M14 4L4 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-        </svg>
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 4l10 10M14 4L4 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
       </button>
     </div>
-    <div class="modal-field">
-      <label>Card Number</label>
-      <input id="m-card-num" type="text" placeholder="XXXX XXXX XXXX XXXX" maxlength="19" />
-    </div>
-    <div class="modal-field">
-      <label>Cardholder Name</label>
-      <input id="m-holder" type="text" placeholder="Full name" />
-    </div>
+    <div class="modal-field"><label>Card Number</label><input id="m-card-num" type="text" placeholder="XXXX XXXX XXXX XXXX" maxlength="19" /></div>
+    <div class="modal-field"><label>Cardholder Name</label><input id="m-holder" type="text" placeholder="Full name" /></div>
     <div class="modal-two-col">
-      <div class="modal-field">
-        <label>Balance ($)</label>
-        <input id="m-balance" type="number" min="0" step="0.01" placeholder="0.00" />
-      </div>
-      <div class="modal-field">
-        <label>Expiry Date</label>
-        <input id="m-expiry" type="text" placeholder="MM/YY" maxlength="5" />
-      </div>
+      <div class="modal-field"><label>Balance ($)</label><input id="m-balance" type="number" min="0" step="0.01" placeholder="0.00" /></div>
+      <div class="modal-field"><label>Expiry Date</label><input id="m-expiry" type="text" placeholder="MM/YY" maxlength="5" /></div>
     </div>
-    <div class="modal-field">
-      <label>PIN</label>
-      <input id="m-pin" type="text" placeholder="Card PIN" maxlength="8" />
-    </div>
+    <div class="modal-field"><label>PIN</label><input id="m-pin" type="text" placeholder="Card PIN" maxlength="8" /></div>
     <div class="modal-field">
       <label>Status</label>
       <select id="m-status">
@@ -512,23 +306,12 @@
     <div class="modal-header">
       <h3>Change Password</h3>
       <button class="modal-close" onclick="closeChangePw()">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <path d="M4 4l10 10M14 4L4 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-        </svg>
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 4l10 10M14 4L4 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
       </button>
     </div>
-    <div class="modal-field">
-      <label>Current Password</label>
-      <input id="pw-current" type="password" placeholder="Enter current password" />
-    </div>
-    <div class="modal-field">
-      <label>New Password</label>
-      <input id="pw-new" type="password" placeholder="Enter new password" />
-    </div>
-    <div class="modal-field">
-      <label>Confirm New Password</label>
-      <input id="pw-confirm" type="password" placeholder="Repeat new password" />
-    </div>
+    <div class="modal-field"><label>Current Password</label><input id="pw-current" type="password" placeholder="Enter current password" /></div>
+    <div class="modal-field"><label>New Password</label><input id="pw-new" type="password" placeholder="Enter new password" /></div>
+    <div class="modal-field"><label>Confirm New Password</label><input id="pw-confirm" type="password" placeholder="Repeat new password" /></div>
     <div class="modal-actions">
       <button class="cancel-btn" onclick="closeChangePw()">Cancel</button>
       <button class="save-btn" onclick="doChangePassword()">Update Password</button>
@@ -537,7 +320,7 @@
 </div>
 
 <!-- CONFIRM DELETE MODAL -->
-<div class="modal-overlay" id="confirm-overlay" onclick="handleConfirmOverlayClick(event)">
+<div class="modal-overlay" id="confirm-overlay" onclick="if(event.target===this)closeConfirm()">
   <div class="modal confirm-modal">
     <div class="confirm-icon">🗑️</div>
     <div class="modal-header" style="justify-content:center;margin-bottom:0">
@@ -554,40 +337,32 @@
 <div id="toast"></div>
 
 <script>
-  // ── AUTH ──────────────────────────────────────────────
+  // AUTH
   async function doLogin() {
     const u = document.getElementById('login-user').value.trim();
     const p = document.getElementById('login-pass').value;
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: u, password: p })
-      });
+      const res = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:u,password:p}) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('dashboard').style.display = 'block';
       await loadCards();
-    } catch (err) {
+    } catch(err) {
       document.getElementById('login-error').textContent = err.message;
       document.getElementById('login-error').classList.add('visible');
     }
   }
-
   function doLogout() {
     document.getElementById('dashboard').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('login-pass').value = '';
     document.getElementById('login-error').classList.remove('visible');
   }
+  document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 
-  document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-
-  // ── DATA ──────────────────────────────────────────────
-  let cards = [];
-  let editingId = null;
-  let selectedIds = new Set();
-  let pendingDeleteIds = [];
+  // DATA
+  let cards = [], editingId = null, selectedIds = new Set(), pendingDeleteIds = [];
 
   async function loadCards() {
     try {
@@ -597,330 +372,210 @@
       updateBulkBar();
       renderStats();
       renderTable();
-    } catch (err) {
-      showToast('Failed to load cards.', 'error');
-    }
+    } catch(err) { showToast('Failed to load cards.','error'); }
   }
 
-  // ── STATS ─────────────────────────────────────────────
+  // STATS
   function renderStats() {
-    const active   = cards.filter(c => c.status === 'active').length;
-    const inactive = cards.filter(c => c.status === 'inactive').length;
-    const total    = cards.reduce((s, c) => s + c.balance, 0);
-    document.getElementById('stat-total').textContent    = cards.length;
-    document.getElementById('stat-active').textContent   = active;
+    const active = cards.filter(c=>c.status==='active').length;
+    const inactive = cards.filter(c=>c.status==='inactive').length;
+    const total = cards.reduce((s,c)=>s+c.balance,0);
+    document.getElementById('stat-total').textContent = cards.length;
+    document.getElementById('stat-active').textContent = active;
     document.getElementById('stat-inactive').textContent = inactive;
-    document.getElementById('stat-value').textContent    = '$' + total.toLocaleString('en-US', { minimumFractionDigits: 2 });
+    document.getElementById('stat-value').textContent = '$'+total.toLocaleString('en-US',{minimumFractionDigits:2});
   }
 
-  // ── TABLE ─────────────────────────────────────────────
+  // TABLE
   function renderTable() {
-    const q      = document.getElementById('search-input').value.toLowerCase();
+    const q = document.getElementById('search-input').value.toLowerCase();
     const filter = document.getElementById('filter-status').value;
-
     const filtered = cards.filter(c => {
       const matchQ = !q || c.num.toLowerCase().includes(q) || c.holder.toLowerCase().includes(q);
-      const matchF = filter === 'all' || c.status === filter;
+      const matchF = filter==='all' || c.status===filter;
       return matchQ && matchF;
     });
-
     const tbody = document.getElementById('table-body');
     const empty = document.getElementById('empty-state');
-
-    if (!filtered.length) {
-      tbody.innerHTML = '';
-      empty.style.display = 'block';
-      return;
-    }
+    if (!filtered.length) { tbody.innerHTML=''; empty.style.display='block'; return; }
     empty.style.display = 'none';
-
     tbody.innerHTML = filtered.map(c => `
-      <tr id="row-${c.id}" class="${selectedIds.has(c.id) ? 'selected' : ''}">
-        <td><input type="checkbox" class="row-check" onchange="toggleRow(${c.id}, this)" ${selectedIds.has(c.id) ? 'checked' : ''} /></td>
-        <td class="card-num">
-          ${c.num.slice(0, -4).replace(/\d/g, '•').replace(/•{4}/g, '•••• ')}
-          <span>${c.num.slice(-4)}</span>
-        </td>
+      <tr id="row-${c.id}" class="${selectedIds.has(c.id)?'selected':''}">
+        <td><input type="checkbox" class="row-check" onchange="toggleRow(${c.id},this)" ${selectedIds.has(c.id)?'checked':''} /></td>
+        <td class="card-num">${c.num.slice(0,-4).replace(/\d/g,'•').replace(/•{4}/g,'•••• ')}<span>${c.num.slice(-4)}</span></td>
         <td class="hide-sm">${c.holder}</td>
-        <td class="balance-cell${c.balance === 0 ? ' zero' : ''}">
-          $${c.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-        </td>
+        <td class="balance-cell${c.balance===0?' zero':''}">$${c.balance.toLocaleString('en-US',{minimumFractionDigits:2})}</td>
         <td class="hide-sm">${c.expiry}</td>
         <td><span class="pill ${c.status}">${c.status}</span></td>
         <td>
           <div class="actions">
             <button class="action-btn edit" onclick="openEditModal(${c.id})">Edit</button>
-            ${c.status !== 'active'
-              ? `<button class="action-btn activate" onclick="quickToggle(${c.id}, 'active')">Activate</button>`
-              : `<button class="action-btn deactivate" onclick="quickToggle(${c.id}, 'inactive')">Deactivate</button>`
+            ${c.status!=='active'
+              ? `<button class="action-btn activate" onclick="quickToggle(${c.id},'active')">Activate</button>`
+              : `<button class="action-btn deactivate" onclick="quickToggle(${c.id},'inactive')">Deactivate</button>`
             }
             <button class="action-btn delete" onclick="confirmSingleDelete(${c.id})">Delete</button>
           </div>
         </td>
       </tr>
     `).join('');
-
-    // Update select-all checkbox state
-    const allFilteredIds = filtered.map(c => c.id);
-    const allSelected = allFilteredIds.length > 0 && allFilteredIds.every(id => selectedIds.has(id));
-    document.getElementById('select-all').checked = allSelected;
-    document.getElementById('select-all').indeterminate = !allSelected && allFilteredIds.some(id => selectedIds.has(id));
+    const allIds = filtered.map(c=>c.id);
+    const allSel = allIds.length>0 && allIds.every(id=>selectedIds.has(id));
+    document.getElementById('select-all').checked = allSel;
+    document.getElementById('select-all').indeterminate = !allSel && allIds.some(id=>selectedIds.has(id));
   }
 
-  // ── SELECTION ─────────────────────────────────────────
-  function toggleRow(id, checkbox) {
-    if (checkbox.checked) {
-      selectedIds.add(id);
-      document.getElementById(`row-${id}`).classList.add('selected');
-    } else {
-      selectedIds.delete(id);
-      document.getElementById(`row-${id}`).classList.remove('selected');
-    }
+  // SELECTION
+  function toggleRow(id, cb) {
+    if(cb.checked) { selectedIds.add(id); document.getElementById('row-'+id).classList.add('selected'); }
+    else { selectedIds.delete(id); document.getElementById('row-'+id).classList.remove('selected'); }
     updateBulkBar();
-    updateSelectAllState();
   }
-
-  function toggleSelectAll(checkbox) {
-    const q      = document.getElementById('search-input').value.toLowerCase();
+  function toggleSelectAll(cb) {
+    const q = document.getElementById('search-input').value.toLowerCase();
     const filter = document.getElementById('filter-status').value;
-    const filtered = cards.filter(c => {
-      const matchQ = !q || c.num.toLowerCase().includes(q) || c.holder.toLowerCase().includes(q);
-      const matchF = filter === 'all' || c.status === filter;
-      return matchQ && matchF;
-    });
-
-    filtered.forEach(c => {
-      if (checkbox.checked) {
-        selectedIds.add(c.id);
-      } else {
-        selectedIds.delete(c.id);
-      }
-    });
-    renderTable();
-    updateBulkBar();
+    const filtered = cards.filter(c => (!q||c.num.toLowerCase().includes(q)||c.holder.toLowerCase().includes(q)) && (filter==='all'||c.status===filter));
+    filtered.forEach(c => cb.checked ? selectedIds.add(c.id) : selectedIds.delete(c.id));
+    renderTable(); updateBulkBar();
   }
-
-  function updateSelectAllState() {
-    const q      = document.getElementById('search-input').value.toLowerCase();
-    const filter = document.getElementById('filter-status').value;
-    const filtered = cards.filter(c => {
-      const matchQ = !q || c.num.toLowerCase().includes(q) || c.holder.toLowerCase().includes(q);
-      const matchF = filter === 'all' || c.status === filter;
-      return matchQ && matchF;
-    });
-    const allFilteredIds = filtered.map(c => c.id);
-    const allSelected = allFilteredIds.length > 0 && allFilteredIds.every(id => selectedIds.has(id));
-    document.getElementById('select-all').checked = allSelected;
-    document.getElementById('select-all').indeterminate = !allSelected && allFilteredIds.some(id => selectedIds.has(id));
-  }
-
-  function clearSelection() {
-    selectedIds.clear();
-    renderTable();
-    updateBulkBar();
-  }
-
+  function clearSelection() { selectedIds.clear(); renderTable(); updateBulkBar(); }
   function updateBulkBar() {
     const bar = document.getElementById('bulk-bar');
-    const count = selectedIds.size;
-    if (count > 0) {
-      bar.classList.add('visible');
-      document.getElementById('bulk-count-label').textContent = `${count} card${count > 1 ? 's' : ''} selected`;
-    } else {
-      bar.classList.remove('visible');
-    }
+    const n = selectedIds.size;
+    if(n>0) { bar.classList.add('visible'); document.getElementById('bulk-count-label').textContent = n+' card'+(n>1?'s':'')+' selected'; }
+    else bar.classList.remove('visible');
   }
 
-  // ── DELETE ────────────────────────────────────────────
-  let deleteCallback = null;
-
- function confirmSingleDelete(id) {
+  // DELETE
+  function confirmSingleDelete(id) {
     const card = cards.find(c => c.id === id);
     if (!card) return;
     pendingDeleteIds = [id];
     document.getElementById('confirm-title').textContent = 'Delete Card?';
-    document.getElementById('confirm-message').textContent = `Delete card ending in ${card.num.slice(-4)}?`;
+    document.getElementById('confirm-message').textContent = 'This will permanently delete card ending in ' + card.num.slice(-4) + '. This cannot be undone.';
     document.getElementById('confirm-overlay').classList.add('open');
   }
-  }
-
   function confirmBulkDelete() {
     pendingDeleteIds = [...selectedIds];
-    const count = pendingDeleteIds.length;
-    document.getElementById('confirm-title').textContent = `Delete ${count} Card${count > 1 ? 's' : ''}?`;
-    document.getElementById('confirm-message').textContent = `This will permanently delete ${count} selected card${count > 1 ? 's' : ''}. This cannot be undone.`;
+    const n = pendingDeleteIds.length;
+    document.getElementById('confirm-title').textContent = 'Delete '+n+' Card'+(n>1?'s':'')+'?';
+    document.getElementById('confirm-message').textContent = 'This will permanently delete '+n+' selected card'+(n>1?'s':'')+'. This cannot be undone.';
     document.getElementById('confirm-overlay').classList.add('open');
   }
-  function closeConfirm() {
-    document.getElementById('confirm-overlay').classList.remove('open');
-    pendingDeleteIds = [];
-  }
-
-  function handleConfirmOverlayClick(e) {
-    if (e.target === document.getElementById('confirm-overlay')) closeConfirm();
-  }
-
+  function closeConfirm() { document.getElementById('confirm-overlay').classList.remove('open'); pendingDeleteIds = []; }
   async function executeDelete() {
     closeConfirm();
     for (const id of pendingDeleteIds) {
-      try {
-        await fetch(`/api/admin/cards/${id}`, { method: 'DELETE' });
-      } catch {}
+      try { await fetch('/api/admin/cards/'+id, {method:'DELETE'}); } catch {}
     }
     pendingDeleteIds = [];
     selectedIds.clear();
     await loadCards();
-    showToast('✓ Card deleted', 'success');
-  }
-  // ── QUICK TOGGLE ──────────────────────────────────────
-  async function quickToggle(id, newStatus) {
-    try {
-      const res = await fetch(`/api/admin/cards/${id}/status`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
-      });
-      if (!res.ok) throw new Error();
-      await loadCards();
-      showToast(newStatus === 'active' ? '✓ Card activated' : '✓ Card deactivated', 'success');
-    } catch {
-      showToast('Failed to update card status.', 'error');
-    }
+    showToast('Card(s) deleted successfully','success');
   }
 
-  // ── MODAL EDIT ────────────────────────────────────────
+  // QUICK TOGGLE
+  async function quickToggle(id, status) {
+    try {
+      const res = await fetch('/api/admin/cards/'+id+'/status', {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
+      if(!res.ok) throw new Error();
+      await loadCards();
+      showToast(status==='active'?'✓ Card activated':'✓ Card deactivated','success');
+    } catch { showToast('Failed to update status.','error'); }
+  }
+
+  // EDIT MODAL
   function openEditModal(id) {
-    const card = cards.find(c => c.id === id);
-    if (!card) return;
+    const card = cards.find(c=>c.id===id);
+    if(!card) return;
     editingId = id;
     document.getElementById('modal-title').textContent = 'Edit Card';
     document.getElementById('m-card-num').value = card.num;
-    document.getElementById('m-holder').value   = card.holder;
-    document.getElementById('m-balance').value  = card.balance;
-    document.getElementById('m-expiry').value   = card.expiry;
-    document.getElementById('m-pin').value      = card.pin || '';
-    document.getElementById('m-status').value   = card.status;
+    document.getElementById('m-holder').value = card.holder;
+    document.getElementById('m-balance').value = card.balance;
+    document.getElementById('m-expiry').value = card.expiry;
+    document.getElementById('m-pin').value = card.pin||'';
+    document.getElementById('m-status').value = card.status;
     document.getElementById('modal-overlay').classList.add('open');
   }
-
   function openAddModal() {
     editingId = null;
     document.getElementById('modal-title').textContent = 'Add New Card';
-    document.getElementById('m-card-num').value = '';
-    document.getElementById('m-holder').value   = '';
-    document.getElementById('m-balance').value  = '';
-    document.getElementById('m-expiry').value   = '';
-    document.getElementById('m-pin').value      = '';
-    document.getElementById('m-status').value   = 'active';
+    ['m-card-num','m-holder','m-balance','m-expiry','m-pin'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('m-status').value = 'active';
     document.getElementById('modal-overlay').classList.add('open');
   }
-
   function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
-  function handleOverlayClick(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
 
   async function saveCard() {
-    const num     = document.getElementById('m-card-num').value.trim();
-    const holder  = document.getElementById('m-holder').value.trim();
+    const num = document.getElementById('m-card-num').value.trim();
+    const holder = document.getElementById('m-holder').value.trim();
     const balance = parseFloat(document.getElementById('m-balance').value);
-    const expiry  = document.getElementById('m-expiry').value.trim();
-    const pin     = document.getElementById('m-pin').value.trim();
-    const status  = document.getElementById('m-status').value;
-
-    if (!num || !holder || isNaN(balance) || !expiry) {
-      showToast('Please fill in all required fields.', 'error');
-      return;
-    }
-
+    const expiry = document.getElementById('m-expiry').value.trim();
+    const pin = document.getElementById('m-pin').value.trim();
+    const status = document.getElementById('m-status').value;
+    if(!num||!holder||isNaN(balance)||!expiry) { showToast('Please fill in all required fields.','error'); return; }
     try {
-      let res;
-      if (editingId !== null) {
-        res = await fetch(`/api/admin/cards/${editingId}`, {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ num, holder, balance, expiry, pin, status })
-        });
-      } else {
-        res = await fetch('/api/admin/cards', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ num, holder, balance, expiry, pin, status })
-        });
-      }
+      const url = editingId!==null ? '/api/admin/cards/'+editingId : '/api/admin/cards';
+      const method = editingId!==null ? 'PATCH' : 'POST';
+      const res = await fetch(url, {method, headers:{'Content-Type':'application/json'}, body:JSON.stringify({num,holder,balance,expiry,pin,status})});
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Save failed.');
-      closeModal();
-      await loadCards();
-      showToast(editingId !== null ? '✓ Card updated' : '✓ Card added', 'success');
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
+      if(!res.ok) throw new Error(data.error||'Save failed.');
+      closeModal(); await loadCards();
+      showToast(editingId!==null?'✓ Card updated':'✓ Card added','success');
+    } catch(err) { showToast(err.message,'error'); }
   }
 
   document.getElementById('m-expiry').addEventListener('input', function(e) {
-    let v = e.target.value.replace(/\D/g, '').slice(0, 4);
-    if (v.length >= 3) v = v.slice(0, 2) + '/' + v.slice(2);
+    let v = e.target.value.replace(/\D/g,'').slice(0,4);
+    if(v.length>=3) v = v.slice(0,2)+'/'+v.slice(2);
     e.target.value = v;
   });
 
-  // ── TOAST ─────────────────────────────────────────────
-  let toastTimer;
-  function showToast(msg, type = 'success') {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = 'show ' + type;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { t.className = ''; }, 3000);
-  }
-
-  function exportToExcel() {
-    if (!cards.length) { showToast("No cards to export.", "error"); return; }
-    const rows = cards.map(c => ({
-      "Card Number": c.num,
-      "Holder": c.holder,
-      "Balance ($)": c.balance,
-      "Expiry": c.expiry,
-      "PIN": c.pin,
-      "Status": c.status,
-      "Created At": c.created_at
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = [20,20,12,10,8,10,22].map(w => ({ wch: w }));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Gift Cards");
-    const date = new Date().toISOString().slice(0,10);
-    XLSX.writeFile(wb, `giftcards-${date}.xlsx`);
-    showToast("✓ Exported to Excel", "success");
-  }
-
-  // ── CHANGE PASSWORD ───────────────────────────────────
+  // CHANGE PASSWORD
   function openChangePw() {
-    document.getElementById('pw-current').value = '';
-    document.getElementById('pw-new').value = '';
-    document.getElementById('pw-confirm').value = '';
+    ['pw-current','pw-new','pw-confirm'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('chgpw-overlay').classList.add('open');
   }
-  function closeChangePw() {
-    document.getElementById('chgpw-overlay').classList.remove('open');
-  }
+  function closeChangePw() { document.getElementById('chgpw-overlay').classList.remove('open'); }
   async function doChangePassword() {
     const current = document.getElementById('pw-current').value;
-    const newPw   = document.getElementById('pw-new').value;
+    const newPw = document.getElementById('pw-new').value;
     const confirm = document.getElementById('pw-confirm').value;
-    if (!current || !newPw || !confirm) { showToast('Please fill in all fields.', 'error'); return; }
-    if (newPw !== confirm) { showToast('New passwords do not match.', 'error'); return; }
-    if (newPw.length < 6) { showToast('Password must be at least 6 characters.', 'error'); return; }
+    if(!current||!newPw||!confirm) { showToast('Please fill in all fields.','error'); return; }
+    if(newPw!==confirm) { showToast('New passwords do not match.','error'); return; }
+    if(newPw.length<6) { showToast('Password must be at least 6 characters.','error'); return; }
     try {
-      const res = await fetch('/api/auth/change-password', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'admin', currentPassword: current, newPassword: newPw })
-      });
+      const res = await fetch('/api/auth/change-password', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',currentPassword:current,newPassword:newPw})});
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to change password.');
+      if(!res.ok) throw new Error(data.error||'Failed.');
       closeChangePw();
-      showToast('✓ Password updated successfully', 'success');
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
+      showToast('✓ Password updated successfully','success');
+    } catch(err) { showToast(err.message,'error'); }
   }
 
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfirm(); closeChangePw(); } });
+  // EXPORT
+  function exportToExcel() {
+    if(!cards.length) { showToast('No cards to export.','error'); return; }
+    const rows = cards.map(c=>({'Card Number':c.num,'Holder':c.holder,'Balance ($)':c.balance,'Expiry':c.expiry,'PIN':c.pin,'Status':c.status,'Created At':c.created_at}));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [20,20,12,10,8,10,22].map(w=>({wch:w}));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Gift Cards');
+    XLSX.writeFile(wb, 'giftcards-'+new Date().toISOString().slice(0,10)+'.xlsx');
+    showToast('✓ Exported to Excel','success');
+  }
+
+  // TOAST
+  let toastTimer;
+  function showToast(msg, type='success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = 'show '+type;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>{ t.className=''; }, 3000);
+  }
+
+  document.addEventListener('keydown', e => { if(e.key==='Escape'){ closeModal(); closeConfirm(); closeChangePw(); } });
 </script>
 </body>
 </html>
